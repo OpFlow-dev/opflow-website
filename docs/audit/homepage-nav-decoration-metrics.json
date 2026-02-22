@@ -1,0 +1,98 @@
+{
+  "ref": {
+    "url": "https://wangyu.me/",
+    "active": {
+      "color": "rgb(54, 69, 217)",
+      "borderBottomWidth": "0px",
+      "borderBottomColor": "rgb(35, 55, 255)",
+      "boxShadow": "none",
+      "paddingTop": "20px",
+      "paddingBottom": "20px",
+      "paddingLeft": "20px",
+      "paddingRight": "20px"
+    },
+    "icon": {
+      "fontSize": "17.5px",
+      "width": "17.5px",
+      "height": "17.5px",
+      "paddingRight": "8.75px",
+      "marginRight": "0px",
+      "marginTop": "-2px"
+    },
+    "text": {
+      "fontSize": "14px",
+      "lineHeight": "23.8px"
+    },
+    "rects": {
+      "active": {
+        "x": 274,
+        "y": 137.5,
+        "width": 94.25,
+        "height": 63.796875,
+        "bottom": 201.296875
+      },
+      "icon": {
+        "x": 294,
+        "y": 160.046875,
+        "width": 26.25,
+        "height": 17.5,
+        "bottom": 177.546875
+      },
+      "text": {
+        "x": 320.25,
+        "y": 160.5,
+        "width": 28,
+        "height": 16,
+        "bottom": 176.5
+      }
+    }
+  },
+  "clone": {
+    "url": "http://127.0.0.1:58050/",
+    "active": {
+      "color": "rgb(54, 69, 217)",
+      "borderBottomWidth": "0px",
+      "borderBottomColor": "rgb(54, 69, 217)",
+      "boxShadow": "rgb(35, 55, 255) 0px -2px 0px 0px inset",
+      "paddingTop": "20px",
+      "paddingBottom": "20px",
+      "paddingLeft": "20px",
+      "paddingRight": "20px"
+    },
+    "icon": {
+      "fontSize": "14px",
+      "width": "18px",
+      "height": "18px",
+      "paddingRight": "0px",
+      "marginRight": "8px",
+      "marginTop": "-2px"
+    },
+    "text": {
+      "fontSize": "14px",
+      "lineHeight": "23.8px"
+    },
+    "rects": {
+      "active": {
+        "x": 274,
+        "y": 137.5,
+        "width": 94,
+        "height": 63.796875,
+        "bottom": 201.296875
+      },
+      "icon": {
+        "x": 294,
+        "y": 159.796875,
+        "width": 18,
+        "height": 18,
+        "bottom": 177.796875
+      },
+      "text": {
+        "x": 320,
+        "y": 160.5,
+        "width": 28,
+        "height": 16,
+        "bottom": 176.5
+      }
+    }
+  }
+}

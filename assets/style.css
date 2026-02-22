@@ -286,13 +286,13 @@ mark {
 .header {
   position: relative;
   width: 100%;
-  margin-bottom: 72px;
+  margin-bottom: 100px;
   background-color: #eee;
-  border-bottom: 1px solid #ddd;
 }
 
 .site-name {
   font-size: 22px;
+  line-height: 22px;
   margin: 0 0 20px;
   font-weight: 400;
   padding-top: 30px;
@@ -301,8 +301,10 @@ mark {
 }
 
 .site-slogan {
+  margin: 0;
   font-size: 15px;
-  padding-bottom: 26px;
+  line-height: 25.5px;
+  padding-bottom: 40px;
   font-style: italic;
 }
 
@@ -321,26 +323,30 @@ mark {
   color: inherit;
   display: inline-block;
   text-decoration: none;
-  padding: 16px 20px;
-  border-bottom: 2px solid transparent;
+  padding: 20px;
 }
 
 .header a:hover,
 .header a.active {
   color: var(--active-color);
-  border-bottom-color: var(--accent);
+  box-shadow: inset 0 -2px 0 var(--accent);
 }
 
 .header .nav-icon {
-  padding-right: 0.5em;
-  width: 1em;
-  height: 1em;
+  width: 18px;
+  height: 18px;
   fill: currentColor;
   display: inline-block;
   flex: 0 0 auto;
-  font-size: 1.45rem;
+  margin-right: 8px;
   vertical-align: middle;
   margin-top: -2px;
+}
+
+.header .nav-icon path {
+  transform: scale(1.25);
+  transform-origin: center;
+  transform-box: fill-box;
 }
 
 @media screen and (max-width: 420px) {
@@ -474,6 +480,8 @@ mark {
   margin-bottom: 1.2em;
   border-radius: 5px;
   line-height: 22px;
+  background-color: #fafafa;
+  border: 1px solid #eee;
 }
 
 .typo .tip {

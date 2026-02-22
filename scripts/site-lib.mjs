@@ -186,7 +186,7 @@ function renderHeader(depth, active) {
       <p class="site-slogan">Build, reflect, and iterate with clarity.</p>
       <nav class="site-nav">
         <ul>
-        ${navLink(`${prefix}`, '首页', 'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z', active === 'home')}
+        ${navLink('/', '首页', 'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z', active === 'home')}
         ${navLink(`${prefix}list/`, '列表', 'M4 10.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5m0-6c-.83 0-1.5.67-1.5 1.5S3.17 7.5 4 7.5 5.5 6.83 5.5 6 4.83 4.5 4 4.5m0 12c-.83 0-1.5.68-1.5 1.5s.68 1.5 1.5 1.5 1.5-.68 1.5-1.5-.67-1.5-1.5-1.5M7 19h14v-2H7zm0-6h14v-2H7zm0-8v2h14V5z', active === 'list')}
         ${navLink(`${prefix}categories/`, '分类', 'M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8z', active === 'categories')}
         ${navLink(`${prefix}tags/`, '标签', 'm21.41 11.58-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58s1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41s-.23-1.06-.59-1.42M5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7', active === 'tags')}
@@ -333,9 +333,18 @@ export async function buildSite() {
 
   for (const post of publishedPosts) {
     const postBody = md.render(post.content);
+    const categoryAnchor = slugifyAnchor(post.category);
+    const inlineTagLinks = post.tags
+      .map((tag) => `<a href="../../tags/#${slugifyAnchor(tag)}">${escapeHtml(tag)}</a>`)
+      .join('、');
+    const tagChips = post.tags
+      .map((tag) => `<a href="../../tags/#${slugifyAnchor(tag)}">${escapeHtml(tag)}</a>`)
+      .join(' ');
+
     const contentHtml = `
 <h1>${escapeHtml(post.title)}</h1>
-<p>发布时间：${escapeHtml(post.date)} ｜ 分类：${escapeHtml(post.category)}</p>
+<p>发布时间：${escapeHtml(post.date)} ｜ 分类：<a href="../../categories/#${categoryAnchor}">${escapeHtml(post.category)}</a>${post.tags.length ? ` ｜ 标签：${inlineTagLinks}` : ''}</p>
+${post.tags.length ? `<div class="tag-list">${tagChips}</div>` : ''}
 <p>${escapeHtml(post.summary)}</p>
 ${postBody}
 `;

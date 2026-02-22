@@ -1,0 +1,62 @@
+{
+  "header-clip": {
+    "mismatchPixels": 3157,
+    "totalPixels": 403200,
+    "mismatchRatio": 0.00783,
+    "diffCountByColor": 4905,
+    "bbox": {
+      "minX": 274,
+      "minY": 30,
+      "maxX": 724,
+      "maxY": 200,
+      "width": 451,
+      "height": 171
+    },
+    "diffImage": "docs/audit/screenshots/homepage-parity/diff-header-clip.png"
+  },
+  "nav-clip": {
+    "mismatchPixels": 833,
+    "totalPixels": 72000,
+    "mismatchRatio": 0.011569,
+    "diffCountByColor": 1447,
+    "bbox": {
+      "minX": 94,
+      "minY": 40,
+      "maxX": 544,
+      "maxY": 80,
+      "width": 451,
+      "height": 41
+    },
+    "diffImage": "docs/audit/screenshots/homepage-parity/diff-nav-clip.png"
+  },
+  "hero-clip": {
+    "mismatchPixels": 99100,
+    "totalPixels": 403200,
+    "mismatchRatio": 0.245784,
+    "diffCountByColor": 108408,
+    "bbox": {
+      "minX": 54,
+      "minY": 59,
+      "maxX": 905,
+      "maxY": 419,
+      "width": 852,
+      "height": 361
+    },
+    "diffImage": "docs/audit/screenshots/homepage-parity/diff-hero-clip.png"
+  },
+  "above-fold": {
+    "mismatchPixels": 73726,
+    "totalPixels": 892800,
+    "mismatchRatio": 0.082578,
+    "diffCountByColor": 82101,
+    "bbox": {
+      "minX": 274,
+      "minY": 30,
+      "maxX": 1145,
+      "maxY": 619,
+      "width": 872,
+      "height": 590
+    },
+    "diffImage": "docs/audit/screenshots/homepage-parity/diff-above-fold.png"
+  }
+}
