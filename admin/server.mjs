@@ -28,6 +28,7 @@ app.use(cookieParser());
 
 const adminPublicDir = path.join(ROOT_DIR, 'admin', 'public');
 const assetsDir = path.join(ROOT_DIR, 'assets');
+const contentPostsDir = path.join(ROOT_DIR, 'content', 'posts');
 const uploadDir = path.join(assetsDir, 'uploads');
 
 function sanitizeBaseFilename(value) {
@@ -271,13 +272,81 @@ app.post('/admin/api/rebuild', requireAuth, async (_req, res, next) => {
 });
 
 app.use('/assets', express.static(assetsDir));
+app.use('/content/posts', express.static(contentPostsDir));
 app.use('/admin', express.static(adminPublicDir));
+
+function isSafeSlug(slug) {
+  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(String(slug ?? ''));
+}
+
+async function sendGeneratedHtml(res, filePath) {
+  try {
+    const html = await fs.readFile(filePath, 'utf8');
+    res.type('html').send(html);
+  } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+      res.status(404).send('Not found');
+      return;
+    }
+    console.error('[sendGeneratedHtml]', filePath, error);
+    res.status(500).send('Internal server error');
+  }
+}
+
+async function sendBinary(res, filePath, contentType) {
+  try {
+    const data = await fs.readFile(filePath);
+    res.type(contentType).send(data);
+  } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+      res.status(404).send('Not found');
+      return;
+    }
+    console.error('[sendBinary]', filePath, error);
+    res.status(500).send('Internal server error');
+  }
+}
+
+app.get('/', async (_req, res) => {
+  await sendGeneratedHtml(res, path.join(ROOT_DIR, 'index.html'));
+});
+
+for (const section of ['list', 'categories', 'tags', 'about']) {
+  app.get([`/${section}`, `/${section}/`], async (_req, res) => {
+    await sendGeneratedHtml(res, path.join(ROOT_DIR, section, 'index.html'));
+  });
+}
+
+app.get(['/posts/:slug', '/posts/:slug/'], async (req, res) => {
+  const { slug } = req.params;
+  if (!isSafeSlug(slug)) {
+    res.status(404).send('Not found');
+    return;
+  }
+  await sendGeneratedHtml(res, path.join(ROOT_DIR, 'posts', slug, 'index.html'));
+});
+
+app.use('/posts', express.static(path.join(ROOT_DIR, 'posts')));
+app.get('/favicon.ico', async (_req, res) => {
+  await sendBinary(res, path.join(ROOT_DIR, 'favicon.ico'), 'image/x-icon');
+});
 
 app.use((error, _req, res, _next) => {
   const message = error instanceof Error ? error.message : 'Unknown error';
   res.status(400).json({ error: message });
 });
 
-app.listen(ADMIN_PORT, ADMIN_HOST, () => {
-  console.log(`Admin server running at http://${ADMIN_HOST}:${ADMIN_PORT}/admin`);
-});
+async function start() {
+  try {
+    await buildSite();
+  } catch (error) {
+    console.error('Initial build failed:', error);
+    process.exit(1);
+  }
+
+  app.listen(ADMIN_PORT, ADMIN_HOST, () => {
+    console.log(`Server running at http://${ADMIN_HOST}:${ADMIN_PORT} (admin: /admin)`);
+  });
+}
+
+start();
