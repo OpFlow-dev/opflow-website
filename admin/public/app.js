@@ -1,7 +1,25 @@
+const STATUS_LABEL = {
+  published: '发布',
+  draft: '草稿',
+};
+
+const EMPTY_FORM = {
+  slug: '',
+  title: '',
+  date: new Date().toISOString().slice(0, 10),
+  status: 'published',
+  category: '',
+  tags: [],
+  summary: '',
+  content: '',
+};
+
 const state = {
   posts: [],
   filtered: [],
   selectedSlug: null,
+  selectedSlugs: new Set(),
+  collapsedCategories: new Set(),
 };
 
 const md = window.markdownit({ html: true, linkify: true, breaks: true });
@@ -11,10 +29,16 @@ const elements = {
   workspace: document.getElementById('workspace'),
   loginForm: document.getElementById('login-form'),
   password: document.getElementById('password'),
-  postList: document.getElementById('post-list'),
+  postTree: document.getElementById('post-tree'),
   search: document.getElementById('search'),
   form: document.getElementById('editor-form'),
   status: document.getElementById('status'),
+  selectedCount: document.getElementById('selected-count'),
+  bulkCategory: document.getElementById('bulk-category'),
+  bulkCategoryBtn: document.getElementById('bulk-category-btn'),
+  bulkStatus: document.getElementById('bulk-status'),
+  bulkStatusBtn: document.getElementById('bulk-status-btn'),
+  bulkDeleteBtn: document.getElementById('bulk-delete-btn'),
   rebuildBtn: document.getElementById('rebuild-btn'),
   newBtn: document.getElementById('new-btn'),
   logoutBtn: document.getElementById('logout-btn'),
@@ -45,7 +69,15 @@ function escapeHtml(value) {
 
 function setStatus(message, isError = false) {
   elements.status.textContent = message;
-  elements.status.style.color = isError ? '#8d2b1f' : '#1f1a16';
+  elements.status.style.color = isError ? '#b42318' : '#334155';
+}
+
+function updateSelectedCount() {
+  elements.selectedCount.textContent = `已选 ${state.selectedSlugs.size} 篇`;
+}
+
+function normalizeCategory(category) {
+  return String(category || '').trim() || '未分类';
 }
 
 async function api(path, options = {}) {
@@ -63,7 +95,7 @@ async function api(path, options = {}) {
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const message = payload?.error || `Request failed (${response.status})`;
+    const message = payload?.error || `请求失败（${response.status}）`;
     throw new Error(message);
   }
 
@@ -87,17 +119,7 @@ function readForm() {
 }
 
 function writeForm(post) {
-  const data = post || {
-    slug: '',
-    title: '',
-    date: new Date().toISOString().slice(0, 10),
-    status: 'published',
-    category: '',
-    tags: [],
-    summary: '',
-    content: '',
-  };
-
+  const data = post || EMPTY_FORM;
   elements.fields.slug.value = data.slug;
   elements.fields.title.value = data.title;
   elements.fields.date.value = data.date;
@@ -113,33 +135,98 @@ function updatePreview() {
   elements.preview.innerHTML = md.render(elements.fields.content.value || '');
 }
 
-function renderList() {
+function getFilteredPosts() {
   const query = elements.search.value.trim().toLowerCase();
-  state.filtered = state.posts.filter((post) => {
+  return state.posts.filter((post) => {
     if (!query) return true;
-    return post.title.toLowerCase().includes(query) || post.slug.toLowerCase().includes(query);
+    return (
+      post.title.toLowerCase().includes(query)
+      || post.slug.toLowerCase().includes(query)
+      || normalizeCategory(post.category).toLowerCase().includes(query)
+    );
   });
+}
 
-  elements.postList.innerHTML = state.filtered
-    .map((post) => {
-      const activeClass = post.slug === state.selectedSlug ? ' active' : '';
-      const status = post.status || 'published';
-      const draftClass = status === 'draft' ? ' draft' : '';
-      return `<li class="post-item${activeClass}${draftClass}" data-slug="${escapeHtml(post.slug)}"><strong>${escapeHtml(post.title)}</strong><p class="meta-line"><span>${escapeHtml(post.date)} · ${escapeHtml(post.slug)}</span><span class="badge status-${status}">${escapeHtml(status)}</span></p></li>`;
+function buildCategoryTree(posts) {
+  const map = new Map();
+  for (const post of posts) {
+    const category = normalizeCategory(post.category);
+    if (!map.has(category)) map.set(category, []);
+    map.get(category).push(post);
+  }
+
+  const categories = [...map.entries()].sort((a, b) => a[0].localeCompare(b[0], 'zh-Hans-CN'));
+  for (const [, items] of categories) {
+    items.sort((a, b) => (b.date + b.slug).localeCompare(a.date + a.slug));
+  }
+  return categories;
+}
+
+function renderTree() {
+  state.filtered = getFilteredPosts();
+  const categories = buildCategoryTree(state.filtered);
+  if (!categories.length) {
+    elements.postTree.innerHTML = '<li class="empty-tip">没有匹配的文章</li>';
+    updateSelectedCount();
+    return;
+  }
+
+  elements.postTree.innerHTML = categories
+    .map(([category, posts]) => {
+      const isCollapsed = state.collapsedCategories.has(category);
+      const checkedInCategory = posts.filter((post) => state.selectedSlugs.has(post.slug)).length;
+
+      return `
+        <li class="category-node" data-category="${escapeHtml(category)}">
+          <div class="category-head">
+            <button type="button" class="category-toggle" data-action="toggle-category" data-category="${escapeHtml(category)}" title="展开或折叠分类" aria-label="展开或折叠分类">${isCollapsed ? '▸' : '▾'}</button>
+            <input type="checkbox" class="category-checkbox" data-category="${escapeHtml(category)}" ${checkedInCategory > 0 && checkedInCategory === posts.length ? 'checked' : ''}>
+            <span class="category-name">${escapeHtml(category)}</span>
+            <span class="category-count">${posts.length} 篇</span>
+          </div>
+          <ul class="post-children ${isCollapsed ? 'hidden' : ''}">
+            ${posts
+              .map((post) => {
+                const status = post.status || 'published';
+                const isActive = post.slug === state.selectedSlug;
+                return `
+                  <li class="post-row${isActive ? ' active' : ''}${status === 'draft' ? ' draft' : ''}" data-slug="${escapeHtml(post.slug)}">
+                    <input type="checkbox" class="post-checkbox" data-slug="${escapeHtml(post.slug)}" ${state.selectedSlugs.has(post.slug) ? 'checked' : ''}>
+                    <button type="button" class="post-open" data-action="select-post" data-slug="${escapeHtml(post.slug)}">
+                      <strong>${escapeHtml(post.title)}</strong>
+                      <span class="post-meta">
+                        <span>${escapeHtml(post.date)}</span>
+                        <span class="badge status-${escapeHtml(status)}">${escapeHtml(STATUS_LABEL[status] || status)}</span>
+                      </span>
+                    </button>
+                  </li>
+                `;
+              })
+              .join('')}
+          </ul>
+        </li>
+      `;
     })
     .join('');
+
+  updateSelectedCount();
 }
 
 async function loadPosts(selectSlug = null) {
   const payload = await api('/posts');
   state.posts = payload.posts || [];
   state.posts.sort((a, b) => (b.date + b.slug).localeCompare(a.date + a.slug));
-  if (selectSlug) {
+
+  const allSlugs = new Set(state.posts.map((post) => post.slug));
+  state.selectedSlugs = new Set([...state.selectedSlugs].filter((slug) => allSlugs.has(slug)));
+
+  if (selectSlug && allSlugs.has(selectSlug)) {
     state.selectedSlug = selectSlug;
-  } else if (!state.selectedSlug && state.posts[0]) {
-    state.selectedSlug = state.posts[0].slug;
+  } else if (!state.selectedSlug || !allSlugs.has(state.selectedSlug)) {
+    state.selectedSlug = state.posts[0]?.slug || null;
   }
-  renderList();
+
+  renderTree();
 
   if (state.selectedSlug) {
     await selectPost(state.selectedSlug);
@@ -148,11 +235,16 @@ async function loadPosts(selectSlug = null) {
   }
 }
 
+async function getPostDetails(slug) {
+  const payload = await api(`/posts/${encodeURIComponent(slug)}`);
+  return payload.post;
+}
+
 async function selectPost(slug) {
   state.selectedSlug = slug;
-  renderList();
-  const payload = await api(`/posts/${encodeURIComponent(slug)}`);
-  writeForm(payload.post);
+  renderTree();
+  const post = await getPostDetails(slug);
+  writeForm(post);
 }
 
 async function checkSession() {
@@ -164,6 +256,7 @@ async function checkSession() {
   } else {
     elements.loginPanel.classList.remove('hidden');
     elements.workspace.classList.add('hidden');
+    writeForm(null);
   }
 }
 
@@ -174,11 +267,13 @@ function replaceSelection({ prefix = '', suffix = '', placeholder = '' }) {
   const selected = textarea.value.slice(start, end);
   const insertion = `${prefix}${selected || placeholder}${suffix}`;
   textarea.setRangeText(insertion, start, end, 'end');
+
   if (!selected && placeholder) {
     const cursorStart = start + prefix.length;
     const cursorEnd = cursorStart + placeholder.length;
     textarea.setSelectionRange(cursorStart, cursorEnd);
   }
+
   textarea.focus();
   updatePreview();
 }
@@ -188,7 +283,6 @@ function prefixSelectedLines(prefix) {
   const start = textarea.selectionStart;
   const end = textarea.selectionEnd;
   const text = textarea.value;
-
   const lineStart = text.lastIndexOf('\n', Math.max(0, start - 1)) + 1;
   const lineEndRaw = text.indexOf('\n', end);
   const lineEnd = lineEndRaw === -1 ? text.length : lineEndRaw;
@@ -205,41 +299,15 @@ function prefixSelectedLines(prefix) {
 }
 
 function applyTool(tool) {
-  if (tool === 'h2') {
-    replaceSelection({ prefix: '## ', placeholder: 'Heading' });
-    return;
-  }
-  if (tool === 'bold') {
-    replaceSelection({ prefix: '**', suffix: '**', placeholder: 'bold text' });
-    return;
-  }
-  if (tool === 'italic') {
-    replaceSelection({ prefix: '*', suffix: '*', placeholder: 'italic text' });
-    return;
-  }
-  if (tool === 'code') {
-    replaceSelection({ prefix: '`', suffix: '`', placeholder: 'code' });
-    return;
-  }
-  if (tool === 'link') {
-    replaceSelection({ prefix: '[', suffix: '](https://example.com)', placeholder: 'link text' });
-    return;
-  }
-  if (tool === 'quote') {
-    prefixSelectedLines('> ');
-    return;
-  }
-  if (tool === 'ul') {
-    prefixSelectedLines('- ');
-    return;
-  }
-  if (tool === 'code-block') {
-    replaceSelection({ prefix: '\n```\n', suffix: '\n```\n', placeholder: 'code here' });
-    return;
-  }
-  if (tool === 'image-upload') {
-    elements.imageUploadInput.click();
-  }
+  if (tool === 'h2') return replaceSelection({ prefix: '## ', placeholder: '二级标题' });
+  if (tool === 'bold') return replaceSelection({ prefix: '**', suffix: '**', placeholder: '加粗文本' });
+  if (tool === 'italic') return replaceSelection({ prefix: '*', suffix: '*', placeholder: '斜体文本' });
+  if (tool === 'code') return replaceSelection({ prefix: '`', suffix: '`', placeholder: '代码' });
+  if (tool === 'link') return replaceSelection({ prefix: '[', suffix: '](https://example.com)', placeholder: '链接文本' });
+  if (tool === 'quote') return prefixSelectedLines('> ');
+  if (tool === 'ul') return prefixSelectedLines('- ');
+  if (tool === 'code-block') return replaceSelection({ prefix: '\n```\n', suffix: '\n```\n', placeholder: 'code here' });
+  if (tool === 'image-upload') elements.imageUploadInput.click();
 }
 
 async function uploadImageAndInsert(file) {
@@ -251,9 +319,102 @@ async function uploadImageAndInsert(file) {
   });
 
   const baseName = file.name.replace(/\.[^.]+$/, '').trim() || 'image';
-  const markdown = `![${baseName}](${payload.url})`;
-  replaceSelection({ prefix: markdown });
-  setStatus(`Image uploaded: ${payload.url}`);
+  replaceSelection({ prefix: `![${baseName}](${payload.url})` });
+  setStatus(`图片上传成功：${payload.url}`);
+}
+
+function getSelectedSlugs() {
+  return [...state.selectedSlugs];
+}
+
+async function runBatch(selected, worker, doneMessage) {
+  if (!selected.length) {
+    setStatus('请先勾选要操作的文章', true);
+    return;
+  }
+
+  const errors = [];
+  for (const slug of selected) {
+    try {
+      await worker(slug);
+    } catch (error) {
+      errors.push(`${slug}: ${error.message}`);
+    }
+  }
+
+  if (errors.length) {
+    const preview = errors.slice(0, 3).join('；');
+    const suffix = errors.length > 3 ? `；另有 ${errors.length - 3} 条失败` : '';
+    setStatus(`批量操作部分失败（${errors.length}/${selected.length}）：${preview}${suffix}`, true);
+  } else {
+    setStatus(doneMessage);
+  }
+
+  await loadPosts(state.selectedSlug);
+}
+
+async function batchUpdateCategory() {
+  const category = elements.bulkCategory.value.trim();
+  if (!category) {
+    setStatus('请填写要批量设置的分类', true);
+    return;
+  }
+
+  const selected = getSelectedSlugs();
+  await runBatch(
+    selected,
+    async (slug) => {
+      const post = await getPostDetails(slug);
+      await api(`/posts/${encodeURIComponent(slug)}`, {
+        method: 'PUT',
+        body: JSON.stringify({ ...post, category }),
+      });
+    },
+    `批量改分类完成，共处理 ${selected.length} 篇`,
+  );
+}
+
+async function batchUpdateStatus() {
+  const status = elements.bulkStatus.value;
+  const selected = getSelectedSlugs();
+  await runBatch(
+    selected,
+    async (slug) => {
+      const post = await getPostDetails(slug);
+      await api(`/posts/${encodeURIComponent(slug)}`, {
+        method: 'PUT',
+        body: JSON.stringify({ ...post, status }),
+      });
+    },
+    `批量改状态完成，已设为“${STATUS_LABEL[status] || status}”`,
+  );
+}
+
+async function batchDelete() {
+  const selected = getSelectedSlugs();
+  if (!selected.length) {
+    setStatus('请先勾选要删除的文章', true);
+    return;
+  }
+
+  if (!window.confirm(`确认批量删除 ${selected.length} 篇文章吗？`)) {
+    return;
+  }
+
+  await runBatch(
+    selected,
+    async (slug) => {
+      await api(`/posts/${encodeURIComponent(slug)}`, {
+        method: 'DELETE',
+        body: JSON.stringify({}),
+      });
+      state.selectedSlugs.delete(slug);
+      if (state.selectedSlug === slug) {
+        state.selectedSlug = null;
+      }
+    },
+    `批量删除完成，共删除 ${selected.length} 篇`,
+  );
 }
 
 elements.loginForm.addEventListener('submit', async (event) => {
@@ -264,19 +425,32 @@ elements.loginForm.addEventListener('submit', async (event) => {
       body: JSON.stringify({ password: elements.password.value }),
     });
     elements.password.value = '';
-    setStatus('Logged in');
+    setStatus('登录成功');
     await checkSession();
   } catch (error) {
     setStatus(error.message, true);
   }
 });
 
-elements.search.addEventListener('input', renderList);
+elements.search.addEventListener('input', renderTree);
 
-elements.postList.addEventListener('click', async (event) => {
-  const item = event.target.closest('.post-item');
-  if (!item) return;
-  const { slug } = item.dataset;
+elements.postTree.addEventListener('click', async (event) => {
+  const toggleBtn = event.target.closest('[data-action="toggle-category"]');
+  if (toggleBtn) {
+    const category = toggleBtn.dataset.category;
+    if (state.collapsedCategories.has(category)) {
+      state.collapsedCategories.delete(category);
+    } else {
+      state.collapsedCategories.add(category);
+    }
+    renderTree();
+    return;
+  }
+
+  const postBtn = event.target.closest('[data-action="select-post"]');
+  if (!postBtn) return;
+
+  const slug = postBtn.dataset.slug;
   if (!slug) return;
 
   try {
@@ -286,16 +460,46 @@ elements.postList.addEventListener('click', async (event) => {
   }
 });
 
+elements.postTree.addEventListener('change', (event) => {
+  const postCheckbox = event.target.closest('.post-checkbox');
+  if (postCheckbox) {
+    const slug = postCheckbox.dataset.slug;
+    if (!slug) return;
+
+    if (postCheckbox.checked) {
+      state.selectedSlugs.add(slug);
+    } else {
+      state.selectedSlugs.delete(slug);
+    }
+    updateSelectedCount();
+    return;
+  }
+
+  const categoryCheckbox = event.target.closest('.category-checkbox');
+  if (!categoryCheckbox) return;
+
+  const category = categoryCheckbox.dataset.category;
+  const categoryPosts = state.filtered.filter((post) => normalizeCategory(post.category) === category);
+  for (const post of categoryPosts) {
+    if (categoryCheckbox.checked) {
+      state.selectedSlugs.add(post.slug);
+    } else {
+      state.selectedSlugs.delete(post.slug);
+    }
+  }
+  renderTree();
+});
+
 elements.newBtn.addEventListener('click', () => {
   state.selectedSlug = null;
   writeForm(null);
-  renderList();
+  renderTree();
 });
 
 elements.rebuildBtn.addEventListener('click', async () => {
   try {
     const payload = await api('/rebuild', { method: 'POST', body: JSON.stringify({}) });
-    setStatus(`Rebuilt ${payload.build.postCount} posts`);
+    setStatus(`重建完成：共生成 ${payload.build.postCount} 篇文章`);
     await loadPosts(state.selectedSlug);
   } catch (error) {
     setStatus(error.message, true);
@@ -306,7 +510,8 @@ elements.logoutBtn.addEventListener('click', async () => {
   try {
     await api('/logout', { method: 'POST', body: JSON.stringify({}) });
     state.selectedSlug = null;
-    setStatus('Logged out');
+    state.selectedSlugs.clear();
+    setStatus('已退出登录');
     await checkSession();
   } catch (error) {
     setStatus(error.message, true);
@@ -323,13 +528,15 @@ elements.form.addEventListener('submit', async (event) => {
         method: 'PUT',
         body: JSON.stringify(formData),
       });
-      setStatus('Post updated and site rebuilt');
+      setStatus('文章已保存并重建站点');
+      state.selectedSlugs.add(formData.slug);
     } else {
       await api('/posts', {
         method: 'POST',
         body: JSON.stringify(formData),
       });
-      setStatus('Post created and site rebuilt');
+      setStatus('文章已创建并重建站点');
+      state.selectedSlugs.add(formData.slug);
     }
 
     state.selectedSlug = formData.slug;
@@ -341,11 +548,11 @@ elements.form.addEventListener('submit', async (event) => {
 
 elements.deleteBtn.addEventListener('click', async () => {
   if (!state.selectedSlug) {
-    setStatus('Select a post to delete', true);
+    setStatus('请先选择要删除的文章', true);
     return;
   }
 
-  if (!window.confirm(`Delete post ${state.selectedSlug}?`)) {
+  if (!window.confirm(`确认删除文章 ${state.selectedSlug} 吗？`)) {
     return;
   }
 
@@ -354,12 +561,25 @@ elements.deleteBtn.addEventListener('click', async () => {
       method: 'DELETE',
       body: JSON.stringify({}),
     });
-    setStatus('Post deleted and site rebuilt');
+    state.selectedSlugs.delete(state.selectedSlug);
+    setStatus('文章已删除并重建站点');
     state.selectedSlug = null;
     await loadPosts();
   } catch (error) {
     setStatus(error.message, true);
   }
+});
+
+elements.bulkCategoryBtn.addEventListener('click', () => {
+  batchUpdateCategory().catch((error) => setStatus(error.message, true));
+});
+
+elements.bulkStatusBtn.addEventListener('click', () => {
+  batchUpdateStatus().catch((error) => setStatus(error.message, true));
+});
+
+elements.bulkDeleteBtn.addEventListener('click', () => {
+  batchDelete().catch((error) => setStatus(error.message, true));
 });
 
 elements.fields.content.addEventListener('input', updatePreview);
