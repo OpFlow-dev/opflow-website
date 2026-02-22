@@ -192,7 +192,7 @@ function renderHeader(depth, active) {
   </header>`;
 }
 
-function renderPage({ title, description = title, canonicalPath, depth, active, contentHtml, extraScripts = '' }) {
+function renderPage({ title, description = title, canonicalPath, depth, active, contentHtml, extraHead = '', extraScripts = '' }) {
   const prefix = '../'.repeat(depth);
   const canonical = `${CANONICAL_BASE}${canonicalPath}`;
   const assetVersion = getAssetVersionForPage();
@@ -208,6 +208,7 @@ function renderPage({ title, description = title, canonicalPath, depth, active, 
   <meta name="title" content="${escapeHtml(title)}">
   <meta name="description" content="${escapeHtml(description)}">
   <link rel="stylesheet" href="${prefix}assets/style.css?v=${assetVersion}">
+  ${extraHead}
 </head>
 <body>
   ${renderHeader(depth, active)}
@@ -359,7 +360,8 @@ export async function buildSite() {
       depth: 2,
       active: null,
       contentHtml,
-      extraScripts: `<script src="https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/dist/markdown-it.min.js"></script>\n  <script src="../../assets/post-renderer.js?v=${postClientVersion}"></script>`,
+      extraHead: '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/styles/github.min.css">',
+      extraScripts: `<script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js"></script>\n  <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/dist/markdown-it.min.js"></script>\n  <script src="../../assets/post-renderer.js?v=${postClientVersion}"></script>`,
     });
 
     await writePage(path.join(PUBLIC_POSTS_DIR, post.slug, 'index.html'), postHtml);

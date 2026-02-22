@@ -12,6 +12,13 @@
     container.innerHTML = `<p>${message}</p>`;
   }
 
+  function highlightCodeBlocks() {
+    if (!window.hljs || typeof window.hljs.highlightElement !== 'function') return;
+
+    const blocks = container.querySelectorAll('pre code');
+    blocks.forEach((block) => window.hljs.highlightElement(block));
+  }
+
   async function renderPostMarkdown() {
     const src = container.getAttribute('data-markdown-src');
     if (!src) return;
@@ -37,6 +44,7 @@
       });
 
       container.innerHTML = md.render(body);
+      highlightCodeBlocks();
     } catch (error) {
       renderError('正文加载失败，请稍后重试。');
       console.error(error);

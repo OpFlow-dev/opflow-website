@@ -91,6 +91,7 @@ npm run serve:random
 - Frontmatter fields: `slug`, `title`, `date`, `status`, `category`, `tags`, `summary`.
 - `npm run build:site` generates page shells (`posts/*`, `index`, `list`, `categories`, `tags`).
 - Post **正文 Markdown 在用户浏览器中渲染**（`assets/post-renderer.js` + `markdown-it`）。
+- Post 页面代码块使用 `highlight.js` + GitHub 风格主题进行客户端语法高亮。
 - 生成的 HTML 只是构建产物，默认 **不入库**（已在 `.gitignore` 中忽略）。
 - `npm run check:markdown-source` ensures post bodies do not contain raw HTML tags.
 

@@ -88,6 +88,7 @@ Status semantics:
 - Post body must be Markdown only; do not embed raw HTML tags for structure.
 - Use fenced code blocks (```), Markdown headings/lists/blockquote/links instead of `<pre><code>`, `<h2>`, `<ul>` etc.
 - Post body is rendered in the browser by `assets/post-renderer.js`; generated post HTML contains only metadata shell + markdown source pointer.
+- Post pages load `highlight.js` with a GitHub-style theme to highlight fenced code blocks client-side.
 - Run `npm run check:markdown-source` before commit.
 
 ## Change Safety Rules
