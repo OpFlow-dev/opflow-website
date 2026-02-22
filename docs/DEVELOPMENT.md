@@ -14,6 +14,8 @@ npm run build:site
 npm run serve
 ```
 
+Note: generated HTML (`index.html`, `about/`, `list/`, `categories/`, `tags/`, `posts/*`) is build output and is gitignored by design.
+
 Only when importing legacy HTML post bodies:
 
 ```bash

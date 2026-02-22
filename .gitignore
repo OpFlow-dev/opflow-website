@@ -18,6 +18,14 @@ npm-debug.log*
 qa-screenshots/
 coverage/
 
+# Generated site output (build artifacts)
+index.html
+about/
+categories/
+list/
+tags/
+posts/
+
 # Reference snapshots
 ref-html/
 

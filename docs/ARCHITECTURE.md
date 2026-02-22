@@ -15,12 +15,12 @@ Core characteristics:
 ## Content Topology
 
 - `content/posts/*.md`: source of truth for all post content.
-- `index.html`: generated landing page with recent posts.
-- `list/index.html`: generated full post index.
-- `categories/index.html`: generated category views and anchors.
-- `tags/index.html`: generated tag views and anchors.
-- `about/index.html`: generated profile/contact page.
-- `posts/<slug>/index.html`: generated individual post pages.
+- `index.html`: generated landing page with recent posts (build artifact, gitignored).
+- `list/index.html`: generated full post index (build artifact, gitignored).
+- `categories/index.html`: generated category views and anchors (build artifact, gitignored).
+- `tags/index.html`: generated tag views and anchors (build artifact, gitignored).
+- `about/index.html`: generated profile/contact page (build artifact, gitignored).
+- `posts/<slug>/index.html`: generated individual post pages (build artifact, gitignored).
 
 ## Shared UI Contracts
 

@@ -8,8 +8,8 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "serve": "python3 -m http.server 58050",
-    "serve:random": "python3 - <<'PY'\nimport socket, subprocess\nwith socket.socket() as s:\n    s.bind(('', 0))\n    port = s.getsockname()[1]\nprint(f'Serving at http://127.0.0.1:{port}')\nsubprocess.run(['python3', '-m', 'http.server', str(port)], check=False)\nPY",
+    "serve": "npm run build:site && python3 -m http.server 58050",
+    "serve:random": "npm run build:site && python3 - <<'PY'\nimport socket, subprocess\nwith socket.socket() as s:\n    s.bind(('', 0))\n    port = s.getsockname()[1]\nprint(f'Serving at http://127.0.0.1:{port}')\nsubprocess.run(['python3', '-m', 'http.server', str(port)], check=False)\nPY",
     "check:links": "node scripts/check-links.mjs",
     "check:top-btn": "node scripts/check-top-btn.mjs",
     "check:metadata": "node scripts/check-metadata.mjs",
@@ -19,7 +19,7 @@
     "build:site": "node scripts/build-site.mjs",
     "admin": "node admin/server.mjs",
     "check:markdown-source": "node scripts/check-markdown-source.mjs",
-    "qa": "npm run check:links && npm run check:top-btn && npm run check:metadata && npm run check:post-alias && npm run check:markdown-source"
+    "qa": "npm run build:site && npm run check:links && npm run check:top-btn && npm run check:metadata && npm run check:post-alias && npm run check:markdown-source"
   },
   "dependencies": {
     "cookie-parser": "^1.4.7",

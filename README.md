@@ -13,27 +13,21 @@ Static website structure clone for engineering practice and delivery workflow ha
 
 ```text
 .
-├── about/
 ├── admin/
 │   ├── public/
 │   └── server.mjs
 ├── assets/
 │   ├── hero.svg
 │   ├── main.js
+│   ├── post-renderer.js
 │   └── style.css
-├── categories/
 ├── content/
-│   └── posts/*.md
+│   └── posts/*.md            # source of truth
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   ├── DEVELOPMENT.md
 │   ├── DEPLOYMENT.md
 │   └── RELEASE.md
-├── list/
-├── posts/                     # generated output from markdown (do not edit manually)
-│   ├── sample-post-001/
-│   ├── ...
-│   └── sample-post-148/
 ├── scripts/
 │   ├── build-site.mjs
 │   ├── migrate-html-to-md.mjs
@@ -44,10 +38,13 @@ Static website structure clone for engineering practice and delivery workflow ha
 │   ├── check-top-btn.mjs
 │   ├── check-markdown-source.mjs
 │   └── post-alias-audit.mjs
-├── tags/
 ├── CONTRIBUTING.md
-├── index.html
 └── package.json
+
+# Generated at build time (gitignored)
+# - index.html
+# - about/ categories/ list/ tags/
+# - posts/<slug>/index.html
 ```
 
 ## Quick Start
@@ -94,6 +91,7 @@ npm run serve:random
 - Frontmatter fields: `slug`, `title`, `date`, `status`, `category`, `tags`, `summary`.
 - `npm run build:site` generates page shells (`posts/*`, `index`, `list`, `categories`, `tags`).
 - Post **正文 Markdown 在用户浏览器中渲染**（`assets/post-renderer.js` + `markdown-it`）。
+- 生成的 HTML 只是构建产物，默认 **不入库**（已在 `.gitignore` 中忽略）。
 - `npm run check:markdown-source` ensures post bodies do not contain raw HTML tags.
 
 ## QA Commands
