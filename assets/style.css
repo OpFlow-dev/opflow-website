@@ -286,8 +286,9 @@ mark {
 .header {
   position: relative;
   width: 100%;
-  margin-bottom: 100px;
+  margin-bottom: 72px;
   background-color: #eee;
+  border-bottom: 1px solid #ddd;
 }
 
 .site-name {
@@ -301,7 +302,7 @@ mark {
 
 .site-slogan {
   font-size: 15px;
-  padding-bottom: 40px;
+  padding-bottom: 26px;
   font-style: italic;
 }
 
@@ -320,7 +321,7 @@ mark {
   color: inherit;
   display: inline-block;
   text-decoration: none;
-  padding: 20px;
+  padding: 16px 20px;
   border-bottom: 2px solid transparent;
 }
 
@@ -337,7 +338,7 @@ mark {
   fill: currentColor;
   display: inline-block;
   flex: 0 0 auto;
-  font-size: 1.35rem;
+  font-size: 1.45rem;
   vertical-align: middle;
   margin-top: -2px;
 }
