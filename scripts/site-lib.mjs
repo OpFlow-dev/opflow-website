@@ -1,9 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import matter from 'gray-matter';
-import MarkdownIt from 'markdown-it';
-
-const md = new MarkdownIt({ html: false, linkify: true, typographer: false });
 
 export const ROOT_DIR = process.cwd();
 export const CONTENT_POSTS_DIR = path.join(ROOT_DIR, 'content', 'posts');
@@ -195,7 +192,7 @@ function renderHeader(depth, active) {
   </header>`;
 }
 
-function renderPage({ title, description = title, canonicalPath, depth, active, contentHtml }) {
+function renderPage({ title, description = title, canonicalPath, depth, active, contentHtml, extraScripts = '' }) {
   const prefix = '../'.repeat(depth);
   const canonical = `${CANONICAL_BASE}${canonicalPath}`;
   const assetVersion = getAssetVersionForPage();
@@ -228,6 +225,7 @@ function renderPage({ title, description = title, canonicalPath, depth, active, 
   <footer class="footer"><div class="wrap"><div class="copyright"><p>&copy; 2026 Opflow::Space</p></div></div></footer>
 
   <script src="${prefix}assets/main.js?v=${assetVersion}"></script>
+  ${extraScripts}
 </body>
 </html>`;
 }
@@ -295,11 +293,13 @@ async function ensurePostAliases(posts) {
 async function getAssetVersion() {
   const stylePath = path.join(ROOT_DIR, 'assets', 'style.css');
   const mainPath = path.join(ROOT_DIR, 'assets', 'main.js');
-  const [styleStat, mainStat] = await Promise.all([
+  const postRendererPath = path.join(ROOT_DIR, 'assets', 'post-renderer.js');
+  const [styleStat, mainStat, postRendererStat] = await Promise.all([
     fs.stat(stylePath),
     fs.stat(mainPath),
+    fs.stat(postRendererPath),
   ]);
-  return `${Math.trunc(styleStat.mtimeMs)}-${Math.trunc(mainStat.mtimeMs)}`;
+  return `${Math.trunc(styleStat.mtimeMs)}-${Math.trunc(mainStat.mtimeMs)}-${Math.trunc(postRendererStat.mtimeMs)}`;
 }
 
 let currentAssetVersion = '';
@@ -329,8 +329,9 @@ export async function buildSite() {
     }
   }
 
+  const postClientVersion = getAssetVersionForPage();
+
   for (const post of publishedPosts) {
-    const postBody = md.render(post.content);
     const categoryAnchor = slugifyAnchor(post.category);
     const inlineTagLinks = post.tags
       .map((tag) => `<a href="/tags/#${slugifyAnchor(tag)}">${escapeHtml(tag)}</a>`)
@@ -347,7 +348,8 @@ export async function buildSite() {
 <h1 class="title">${escapeHtml(post.title)}</h1>
 <div class="info">${postInfo}</div>
 <p>${escapeHtml(post.summary)}</p>
-${postBody}
+<div id="post-content" data-markdown-src="/content/posts/${post.slug}.md"></div>
+<noscript><p>请启用 JavaScript 以渲染 Markdown 正文。</p></noscript>
 `;
 
     const postHtml = renderPage({
@@ -357,6 +359,7 @@ ${postBody}
       depth: 2,
       active: null,
       contentHtml,
+      extraScripts: `<script src="https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/dist/markdown-it.min.js"></script>\n  <script src="../../assets/post-renderer.js?v=${postClientVersion}"></script>`,
     });
 
     await writePage(path.join(PUBLIC_POSTS_DIR, post.slug, 'index.html'), postHtml);

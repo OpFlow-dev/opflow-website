@@ -92,7 +92,8 @@ npm run serve:random
 
 - Edit posts only in `content/posts/*.md`.
 - Frontmatter fields: `slug`, `title`, `date`, `status`, `category`, `tags`, `summary`.
-- `npm run build:site` renders markdown into public HTML (`posts/*`, `index`, `list`, `categories`, `tags`).
+- `npm run build:site` generates page shells (`posts/*`, `index`, `list`, `categories`, `tags`).
+- Post **正文 Markdown 在用户浏览器中渲染**（`assets/post-renderer.js` + `markdown-it`）。
 - `npm run check:markdown-source` ensures post bodies do not contain raw HTML tags.
 
 ## QA Commands
