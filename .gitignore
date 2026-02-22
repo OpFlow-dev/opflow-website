@@ -1,2 +1,5 @@
 .server.log
 .server.pid
+.venv/
+qa-screenshots/
+ref-html/

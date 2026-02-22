@@ -1,60 +1,45 @@
-(function () {
-  'use strict';
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.typo > table').forEach((table) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'overflow-x-scroll';
+    table.parentNode?.insertBefore(wrapper, table);
+    wrapper.appendChild(table);
+  });
 
-  var backToTopBtn = document.querySelector('.back-to-top');
-  var navLinks = document.querySelectorAll('.site-nav a');
-
-  function normalizePath(path) {
-    if (!path) return '/';
-    var p = path.replace(/\/index\.html$/, '/');
-    if (p.length > 1 && p.endsWith('/')) p = p.slice(0, -1);
-    return p || '/';
+  if (window.innerWidth >= 1024) {
+    document.querySelectorAll('.typo img').forEach((img) => {
+      img.style.cursor = 'zoom-in';
+      img.addEventListener('click', () => {
+        const overlay = document.createElement('div');
+        overlay.className = 'overlay';
+        const big = document.createElement('img');
+        big.src = img.src;
+        big.alt = img.alt || '';
+        overlay.appendChild(big);
+        overlay.addEventListener('click', () => {
+          if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        });
+        document.body.appendChild(overlay);
+      });
+    });
   }
 
-  function initBackToTop() {
-    if (!backToTopBtn) return;
-
-    function toggleBackToTop() {
-      if (window.scrollY > 260) backToTopBtn.classList.add('visible');
-      else backToTopBtn.classList.remove('visible');
-    }
-
-    backToTopBtn.addEventListener('click', function (e) {
-      e.preventDefault();
+  const topBtn = document.getElementById('top-btn');
+  if (topBtn) {
+    topBtn.addEventListener('click', () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
-
-    window.addEventListener('scroll', toggleBackToTop, { passive: true });
-    toggleBackToTop();
   }
 
-  function initActiveNavFallback() {
-    if (!navLinks.length) return;
-
-    var hasAriaCurrent = Array.prototype.some.call(navLinks, function (link) {
-      return link.getAttribute('aria-current') === 'page';
-    });
-    if (hasAriaCurrent) return;
-
-    var current = normalizePath(window.location.pathname);
-    Array.prototype.forEach.call(navLinks, function (link) {
-      var href = link.getAttribute('href');
-      if (!href) return;
-      var linkPath = normalizePath(new URL(href, window.location.href).pathname);
-      if (linkPath === current) {
-        link.setAttribute('aria-current', 'page');
-      }
-    });
-  }
-
-  function init() {
-    initBackToTop();
-    initActiveNavFallback();
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-})();
+  window.w4096 = {
+    showMessage(message, level = 'primary', timeout = 3000) {
+      const el = document.createElement('div');
+      el.className = `message-global ${level}`;
+      el.innerText = message;
+      document.body.appendChild(el);
+      setTimeout(() => {
+        if (el.parentNode) el.parentNode.removeChild(el);
+      }, timeout);
+    }
+  };
+});
