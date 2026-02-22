@@ -45,7 +45,7 @@
         <div class="batch-panel">
           <p id="selected-count" class="selected-count">已选 0 篇</p>
           <div class="batch-row">
-            <input id="bulk-category" type="text" placeholder="批量设置分类">
+            <select id="bulk-category"></select>
             <button id="bulk-category-btn" type="button" class="btn btn-light">改分类</button>
           </div>
           <div class="batch-row">
@@ -56,6 +56,18 @@
             <button id="bulk-status-btn" type="button" class="btn btn-light">改状态</button>
           </div>
           <button id="bulk-delete-btn" type="button" class="btn btn-danger btn-block">批量删除</button>
+        </div>
+
+        <div class="category-manager">
+          <h3>分类管理</h3>
+          <div class="batch-row">
+            <input id="category-create-input" type="text" placeholder="输入新分类名">
+            <button id="category-create-btn" type="button" class="btn btn-light">创建分类</button>
+          </div>
+          <div class="batch-row">
+            <select id="category-delete-select"></select>
+            <button id="category-delete-btn" type="button" class="btn btn-danger">删除分类</button>
+          </div>
         </div>
 
         <ul id="post-tree" class="post-tree"></ul>
@@ -72,7 +84,9 @@
               <option value="draft">草稿</option>
             </select>
           </label>
-          <label>分类<input id="category" required placeholder="例如：工程实践"></label>
+          <label>分类
+            <select id="category" required></select>
+          </label>
           <label>标签（逗号分隔）<input id="tags" placeholder="前端, 架构, 性能"></label>
           <label class="full">摘要<textarea id="summary" rows="3" required placeholder="简要描述文章内容"></textarea></label>
           <label class="full">Markdown 正文

@@ -66,8 +66,16 @@ Open `http://127.0.0.1:59051/admin`, then:
 - Use the markdown toolbar for H2/bold/italic/code/link/quote/list/code-block snippets.
 - Use toolbar `Upload Image` to select a local image and auto-insert markdown (`![alt](/assets/uploads/...)`) at cursor.
 - Use `Rebuild` to regenerate static pages on demand.
+- Use `分类管理` in the left panel to create/delete categories.
+- Editor `分类` field is dropdown-only and is sourced from backend categories API.
 
 All admin write operations trigger static regeneration automatically.
+
+Category persistence:
+
+- Registry file: `content/categories.json`.
+- On server startup, the registry file is auto-created if missing, and categories from existing posts are merged in.
+- Deleting a category with posts supports reassignment (`reassignTo`), defaulting to `未分类`.
 
 Status semantics:
 

@@ -29,7 +29,93 @@ app.use(cookieParser());
 const adminPublicDir = path.join(ROOT_DIR, 'admin', 'public');
 const assetsDir = path.join(ROOT_DIR, 'assets');
 const contentPostsDir = path.join(ROOT_DIR, 'content', 'posts');
+const categoriesRegistryPath = path.join(ROOT_DIR, 'content', 'categories.json');
 const uploadDir = path.join(assetsDir, 'uploads');
+const DEFAULT_CATEGORY = '未分类';
+
+function normalizeCategoryName(value) {
+  const name = String(value ?? '').trim();
+  if (!name) throw new Error('category name is required');
+  return name;
+}
+
+function sortCategoryNames(categories) {
+  return [...categories].sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'));
+}
+
+function categorySetFromPosts(posts) {
+  const set = new Set();
+  for (const post of posts) {
+    set.add(normalizeCategoryName(post.category));
+  }
+  return set;
+}
+
+function setsEqual(a, b) {
+  if (a.size !== b.size) return false;
+  for (const item of a) {
+    if (!b.has(item)) return false;
+  }
+  return true;
+}
+
+async function readCategoryRegistry() {
+  try {
+    const raw = await fs.readFile(categoriesRegistryPath, 'utf8');
+    const parsed = JSON.parse(raw);
+    const source = Array.isArray(parsed) ? parsed : parsed?.categories;
+    if (!Array.isArray(source)) throw new Error('categories.json must be an array or { categories: [] }');
+    const categories = new Set(
+      source
+        .map((item) => String(item ?? '').trim())
+        .filter(Boolean),
+    );
+    return { exists: true, categories };
+  } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+      return { exists: false, categories: new Set() };
+    }
+    throw error;
+  }
+}
+
+async function writeCategoryRegistry(categories) {
+  await fs.mkdir(path.dirname(categoriesRegistryPath), { recursive: true });
+  const payload = { categories: sortCategoryNames(categories) };
+  await fs.writeFile(categoriesRegistryPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+}
+
+async function ensureCategoryRegistry({ posts = null, extraCategories = [] } = {}) {
+  const { exists, categories: current } = await readCategoryRegistry();
+  const next = new Set(current);
+  next.add(DEFAULT_CATEGORY);
+
+  for (const name of extraCategories) {
+    if (name == null) continue;
+    next.add(normalizeCategoryName(name));
+  }
+
+  if (posts) {
+    for (const name of categorySetFromPosts(posts)) {
+      next.add(name);
+    }
+  }
+
+  if (!exists || !setsEqual(current, next)) {
+    await writeCategoryRegistry(next);
+  }
+
+  return next;
+}
+
+function buildCategoryRows(categories, posts) {
+  const counts = new Map();
+  for (const post of posts) {
+    const name = normalizeCategoryName(post.category);
+    counts.set(name, (counts.get(name) || 0) + 1);
+  }
+  return sortCategoryNames(categories).map((name) => ({ name, count: counts.get(name) || 0 }));
+}
 
 function sanitizeBaseFilename(value) {
   return String(value)
@@ -189,6 +275,85 @@ app.post('/admin/api/upload-image', requireAuth, async (req, res, next) => {
   }
 });
 
+app.get('/admin/api/categories', requireAuth, async (_req, res, next) => {
+  try {
+    const posts = await loadPosts();
+    const categories = await ensureCategoryRegistry({ posts });
+    res.json({ categories: buildCategoryRows(categories, posts) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/admin/api/categories', requireAuth, async (req, res, next) => {
+  try {
+    const name = normalizeCategoryName(req.body?.name);
+    const posts = await loadPosts();
+    const categories = await ensureCategoryRegistry({ posts });
+    if (categories.has(name)) {
+      res.status(409).json({ error: 'category already exists' });
+      return;
+    }
+    categories.add(name);
+    await writeCategoryRegistry(categories);
+    res.status(201).json({ ok: true, category: { name, count: 0 } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete('/admin/api/categories/:name', requireAuth, async (req, res, next) => {
+  try {
+    const target = normalizeCategoryName(decodeURIComponent(req.params.name));
+    if (target === DEFAULT_CATEGORY) {
+      res.status(400).json({ error: 'default category cannot be deleted' });
+      return;
+    }
+
+    const posts = await loadPosts();
+    const categories = await ensureCategoryRegistry({ posts });
+    if (!categories.has(target)) {
+      res.status(404).json({ error: 'category not found' });
+      return;
+    }
+
+    const postsInCategory = posts.filter((post) => normalizeCategoryName(post.category) === target);
+    const reassignTo = req.body?.reassignTo == null
+      ? DEFAULT_CATEGORY
+      : normalizeCategoryName(req.body.reassignTo);
+
+    if (postsInCategory.length && reassignTo === target) {
+      res.status(400).json({ error: 'reassignTo must be different from deleted category' });
+      return;
+    }
+
+    let nextPosts = posts;
+    if (postsInCategory.length) {
+      for (const post of postsInCategory) {
+        await writePost({ ...post, category: reassignTo });
+      }
+      nextPosts = posts.map((post) => (normalizeCategoryName(post.category) === target ? { ...post, category: reassignTo } : post));
+      await buildSite();
+    }
+
+    const nextCategories = new Set(categories);
+    nextCategories.add(reassignTo);
+    for (const name of categorySetFromPosts(nextPosts)) {
+      nextCategories.add(name);
+    }
+    nextCategories.delete(target);
+    await writeCategoryRegistry(nextCategories);
+
+    res.json({
+      ok: true,
+      reassigned: postsInCategory.length,
+      reassignTo: postsInCategory.length ? reassignTo : null,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.post('/admin/api/posts', requireAuth, async (req, res, next) => {
   try {
     const payload = normalizePostPayload(req.body);
@@ -199,6 +364,7 @@ app.post('/admin/api/posts', requireAuth, async (req, res, next) => {
     }
 
     await writePost(payload);
+    await ensureCategoryRegistry({ extraCategories: [payload.category] });
     const buildResult = await buildSite();
     res.status(201).json({ ok: true, post: payload, build: buildResult });
   } catch (error) {
@@ -224,6 +390,7 @@ app.put('/admin/api/posts/:slug', requireAuth, async (req, res, next) => {
     }
 
     await writePost(payload);
+    await ensureCategoryRegistry({ extraCategories: [payload.category] });
     if (payload.slug !== currentSlug) {
       await deletePostMarkdown(currentSlug);
       await removePostOutput(currentSlug);
@@ -256,7 +423,14 @@ app.delete('/admin/api/posts/:slug', requireAuth, async (req, res, next) => {
 app.get('/admin/api/taxonomy', requireAuth, async (_req, res, next) => {
   try {
     const posts = await loadPosts();
-    res.json(buildTaxonomy(posts));
+    const categories = await ensureCategoryRegistry({ posts });
+    const taxonomy = buildTaxonomy(posts);
+    for (const name of sortCategoryNames(categories)) {
+      if (!(name in taxonomy.categories)) {
+        taxonomy.categories[name] = 0;
+      }
+    }
+    res.json(taxonomy);
   } catch (error) {
     next(error);
   }
@@ -338,6 +512,8 @@ app.use((error, _req, res, _next) => {
 
 async function start() {
   try {
+    const posts = await loadPosts();
+    await ensureCategoryRegistry({ posts });
     await buildSite();
   } catch (error) {
     console.error('Initial build failed:', error);

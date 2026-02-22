@@ -124,6 +124,12 @@ Admin API/UI behavior:
 - Manual rebuild is available from the UI and `POST /admin/api/rebuild`.
 - Admin editor includes a markdown toolbar and image upload button.
 - Image upload endpoint: authenticated `POST /admin/api/upload-image` with multipart field `image`, returning `/assets/uploads/<filename>`.
+- Category registry is persisted in `content/categories.json`; startup auto-merges categories found in existing markdown posts.
+- Category management API (authenticated):
+  - `GET /admin/api/categories` returns `{ categories: [{ name, count }] }`
+  - `POST /admin/api/categories` with body `{ name }` creates a category
+  - `DELETE /admin/api/categories/:name` with optional body `{ reassignTo }` migrates posts (default `未分类`) then deletes the category
+- Admin UI supports creating/deleting categories and uses dropdown-only category selection in editor/bulk operations.
 
 Security note:
 

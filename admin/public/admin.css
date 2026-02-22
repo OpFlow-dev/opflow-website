@@ -124,6 +124,20 @@ h2 {
   gap: 8px;
 }
 
+.category-manager {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--panel-soft);
+  display: grid;
+  gap: 8px;
+}
+
+.category-manager h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
 .post-tree {
   margin: 0;
   padding: 0;

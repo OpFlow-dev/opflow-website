@@ -3,12 +3,14 @@ const STATUS_LABEL = {
   draft: '草稿',
 };
 
+const DEFAULT_CATEGORY = '未分类';
+
 const EMPTY_FORM = {
   slug: '',
   title: '',
   date: new Date().toISOString().slice(0, 10),
   status: 'published',
-  category: '',
+  category: DEFAULT_CATEGORY,
   tags: [],
   summary: '',
   content: '',
@@ -16,6 +18,7 @@ const EMPTY_FORM = {
 
 const state = {
   posts: [],
+  categories: [],
   filtered: [],
   selectedSlug: null,
   selectedSlugs: new Set(),
@@ -39,6 +42,10 @@ const elements = {
   bulkStatus: document.getElementById('bulk-status'),
   bulkStatusBtn: document.getElementById('bulk-status-btn'),
   bulkDeleteBtn: document.getElementById('bulk-delete-btn'),
+  categoryCreateInput: document.getElementById('category-create-input'),
+  categoryCreateBtn: document.getElementById('category-create-btn'),
+  categoryDeleteSelect: document.getElementById('category-delete-select'),
+  categoryDeleteBtn: document.getElementById('category-delete-btn'),
   rebuildBtn: document.getElementById('rebuild-btn'),
   newBtn: document.getElementById('new-btn'),
   logoutBtn: document.getElementById('logout-btn'),
@@ -77,7 +84,61 @@ function updateSelectedCount() {
 }
 
 function normalizeCategory(category) {
-  return String(category || '').trim() || '未分类';
+  return String(category || '').trim() || DEFAULT_CATEGORY;
+}
+
+function categoryCountMap() {
+  return new Map(state.categories.map((item) => [item.name, item.count]));
+}
+
+function categoryNames() {
+  const names = new Set(state.categories.map((item) => item.name));
+  names.add(DEFAULT_CATEGORY);
+  return [...names].sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'));
+}
+
+function renderCategorySelectOptions(select, options, currentValue) {
+  select.innerHTML = options
+    .map((option) => `<option value="${escapeHtml(option.value)}"${option.disabled ? ' disabled' : ''}>${escapeHtml(option.label)}</option>`)
+    .join('');
+
+  if (currentValue && options.some((option) => !option.disabled && option.value === currentValue)) {
+    select.value = currentValue;
+  }
+}
+
+function renderCategoryControls() {
+  const names = categoryNames();
+  const currentEditorCategory = normalizeCategory(elements.fields.category.value);
+  const currentBulkCategory = normalizeCategory(elements.bulkCategory.value);
+  const currentDeleteCategory = elements.categoryDeleteSelect.value;
+
+  renderCategorySelectOptions(
+    elements.fields.category,
+    names.map((name) => ({ value: name, label: name })),
+    currentEditorCategory,
+  );
+
+  renderCategorySelectOptions(
+    elements.bulkCategory,
+    names.map((name) => ({ value: name, label: name })),
+    currentBulkCategory,
+  );
+
+  const deletable = names.filter((name) => name !== DEFAULT_CATEGORY);
+  const deleteOptions = [
+    { value: '', label: '选择要删除的分类', disabled: true },
+    ...deletable.map((name) => {
+      const count = state.categories.find((item) => item.name === name)?.count || 0;
+      return { value: name, label: `${name}（${count} 篇）` };
+    }),
+  ];
+
+  renderCategorySelectOptions(elements.categoryDeleteSelect, deleteOptions, currentDeleteCategory);
+  if (!elements.categoryDeleteSelect.value && deleteOptions[1]) {
+    elements.categoryDeleteSelect.value = deleteOptions[1].value;
+  }
+  elements.categoryDeleteBtn.disabled = deletable.length === 0;
 }
 
 async function api(path, options = {}) {
@@ -102,13 +163,25 @@ async function api(path, options = {}) {
   return payload;
 }
 
+async function loadCategories() {
+  const payload = await api('/categories');
+  state.categories = (payload.categories || [])
+    .map((item) => ({
+      name: normalizeCategory(item.name),
+      count: Number(item.count) || 0,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'));
+
+  renderCategoryControls();
+}
+
 function readForm() {
   return {
     slug: elements.fields.slug.value.trim(),
     title: elements.fields.title.value.trim(),
     date: elements.fields.date.value.trim(),
     status: elements.fields.status.value,
-    category: elements.fields.category.value.trim(),
+    category: normalizeCategory(elements.fields.category.value),
     tags: elements.fields.tags.value
       .split(',')
       .map((tag) => tag.trim())
@@ -124,7 +197,11 @@ function writeForm(post) {
   elements.fields.title.value = data.title;
   elements.fields.date.value = data.date;
   elements.fields.status.value = data.status || 'published';
-  elements.fields.category.value = data.category;
+
+  const formCategory = normalizeCategory(data.category);
+  const names = categoryNames();
+  elements.fields.category.value = names.includes(formCategory) ? formCategory : DEFAULT_CATEGORY;
+
   elements.fields.tags.value = (data.tags || []).join(', ');
   elements.fields.summary.value = data.summary;
   elements.fields.content.value = data.content;
@@ -147,24 +224,39 @@ function getFilteredPosts() {
   });
 }
 
-function buildCategoryTree(posts) {
-  const map = new Map();
+function buildCategoryTree(posts, query) {
+  const categoryToPosts = new Map();
   for (const post of posts) {
     const category = normalizeCategory(post.category);
-    if (!map.has(category)) map.set(category, []);
-    map.get(category).push(post);
+    if (!categoryToPosts.has(category)) categoryToPosts.set(category, []);
+    categoryToPosts.get(category).push(post);
   }
 
-  const categories = [...map.entries()].sort((a, b) => a[0].localeCompare(b[0], 'zh-Hans-CN'));
-  for (const [, items] of categories) {
+  const known = categoryNames();
+  for (const category of categoryToPosts.keys()) {
+    if (!known.includes(category)) {
+      known.push(category);
+    }
+  }
+
+  const rows = known
+    .sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'))
+    .map((category) => [category, categoryToPosts.get(category) || []]);
+
+  for (const [, items] of rows) {
     items.sort((a, b) => (b.date + b.slug).localeCompare(a.date + a.slug));
   }
-  return categories;
+
+  if (!query) return rows;
+  return rows.filter(([category, items]) => items.length > 0 || category.toLowerCase().includes(query));
 }
 
 function renderTree() {
+  const query = elements.search.value.trim().toLowerCase();
   state.filtered = getFilteredPosts();
-  const categories = buildCategoryTree(state.filtered);
+  const categories = buildCategoryTree(state.filtered, query);
+  const counts = categoryCountMap();
+
   if (!categories.length) {
     elements.postTree.innerHTML = '<li class="empty-tip">没有匹配的文章</li>';
     updateSelectedCount();
@@ -175,14 +267,15 @@ function renderTree() {
     .map(([category, posts]) => {
       const isCollapsed = state.collapsedCategories.has(category);
       const checkedInCategory = posts.filter((post) => state.selectedSlugs.has(post.slug)).length;
+      const categoryCount = counts.get(category) ?? posts.length;
 
       return `
         <li class="category-node" data-category="${escapeHtml(category)}">
           <div class="category-head">
             <button type="button" class="category-toggle" data-action="toggle-category" data-category="${escapeHtml(category)}" title="展开或折叠分类" aria-label="展开或折叠分类">${isCollapsed ? '▸' : '▾'}</button>
-            <input type="checkbox" class="category-checkbox" data-category="${escapeHtml(category)}" ${checkedInCategory > 0 && checkedInCategory === posts.length ? 'checked' : ''}>
+            <input type="checkbox" class="category-checkbox" data-category="${escapeHtml(category)}" ${posts.length > 0 && checkedInCategory > 0 && checkedInCategory === posts.length ? 'checked' : ''} ${posts.length === 0 ? 'disabled' : ''}>
             <span class="category-name">${escapeHtml(category)}</span>
-            <span class="category-count">${posts.length} 篇</span>
+            <span class="category-count">${categoryCount} 篇</span>
           </div>
           <ul class="post-children ${isCollapsed ? 'hidden' : ''}">
             ${posts
@@ -235,6 +328,11 @@ async function loadPosts(selectSlug = null) {
   }
 }
 
+async function refreshData(selectSlug = null) {
+  await loadCategories();
+  await loadPosts(selectSlug);
+}
+
 async function getPostDetails(slug) {
   const payload = await api(`/posts/${encodeURIComponent(slug)}`);
   return payload.post;
@@ -252,7 +350,7 @@ async function checkSession() {
   if (me.authenticated) {
     elements.loginPanel.classList.add('hidden');
     elements.workspace.classList.remove('hidden');
-    await loadPosts();
+    await refreshData();
   } else {
     elements.loginPanel.classList.remove('hidden');
     elements.workspace.classList.add('hidden');
@@ -350,16 +448,11 @@ async function runBatch(selected, worker, doneMessage) {
     setStatus(doneMessage);
   }
 
-  await loadPosts(state.selectedSlug);
+  await refreshData(state.selectedSlug);
 }
 
 async function batchUpdateCategory() {
-  const category = elements.bulkCategory.value.trim();
-  if (!category) {
-    setStatus('请填写要批量设置的分类', true);
-    return;
-  }
-
+  const category = normalizeCategory(elements.bulkCategory.value);
   const selected = getSelectedSlugs();
   await runBatch(
     selected,
@@ -415,6 +508,53 @@ async function batchDelete() {
     },
     `批量删除完成，共删除 ${selected.length} 篇`,
   );
+}
+
+async function createCategory() {
+  const name = elements.categoryCreateInput.value.trim();
+  if (!name) {
+    setStatus('请输入分类名', true);
+    return;
+  }
+
+  await api('/categories', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+  elements.categoryCreateInput.value = '';
+  setStatus(`分类“${name}”已创建`);
+  await refreshData(state.selectedSlug);
+}
+
+async function deleteCategory() {
+  const name = elements.categoryDeleteSelect.value;
+  if (!name) {
+    setStatus('请先选择要删除的分类', true);
+    return;
+  }
+
+  const meta = state.categories.find((item) => item.name === name);
+  const count = meta?.count || 0;
+
+  if (count > 0) {
+    const ok = window.confirm(`分类“${name}”下有 ${count} 篇文章，删除后将默认迁移到“${DEFAULT_CATEGORY}”。是否继续？`);
+    if (!ok) return;
+    await api(`/categories/${encodeURIComponent(name)}`, {
+      method: 'DELETE',
+      body: JSON.stringify({ reassignTo: DEFAULT_CATEGORY }),
+    });
+    setStatus(`分类“${name}”已删除，${count} 篇文章已迁移到“${DEFAULT_CATEGORY}”`);
+  } else {
+    const ok = window.confirm(`确认删除空分类“${name}”吗？`);
+    if (!ok) return;
+    await api(`/categories/${encodeURIComponent(name)}`, {
+      method: 'DELETE',
+      body: JSON.stringify({}),
+    });
+    setStatus(`分类“${name}”已删除`);
+  }
+
+  await refreshData(state.selectedSlug);
 }
 
 elements.loginForm.addEventListener('submit', async (event) => {
@@ -500,7 +640,7 @@ elements.rebuildBtn.addEventListener('click', async () => {
   try {
     const payload = await api('/rebuild', { method: 'POST', body: JSON.stringify({}) });
     setStatus(`重建完成：共生成 ${payload.build.postCount} 篇文章`);
-    await loadPosts(state.selectedSlug);
+    await refreshData(state.selectedSlug);
   } catch (error) {
     setStatus(error.message, true);
   }
@@ -540,7 +680,7 @@ elements.form.addEventListener('submit', async (event) => {
     }
 
     state.selectedSlug = formData.slug;
-    await loadPosts(formData.slug);
+    await refreshData(formData.slug);
   } catch (error) {
     setStatus(error.message, true);
   }
@@ -564,7 +704,7 @@ elements.deleteBtn.addEventListener('click', async () => {
     state.selectedSlugs.delete(state.selectedSlug);
     setStatus('文章已删除并重建站点');
     state.selectedSlug = null;
-    await loadPosts();
+    await refreshData();
   } catch (error) {
     setStatus(error.message, true);
   }
@@ -580,6 +720,20 @@ elements.bulkStatusBtn.addEventListener('click', () => {
 
 elements.bulkDeleteBtn.addEventListener('click', () => {
   batchDelete().catch((error) => setStatus(error.message, true));
+});
+
+elements.categoryCreateBtn.addEventListener('click', () => {
+  createCategory().catch((error) => setStatus(error.message, true));
+});
+
+elements.categoryCreateInput.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  createCategory().catch((error) => setStatus(error.message, true));
+});
+
+elements.categoryDeleteBtn.addEventListener('click', () => {
+  deleteCategory().catch((error) => setStatus(error.message, true));
 });
 
 elements.fields.content.addEventListener('input', updatePreview);
