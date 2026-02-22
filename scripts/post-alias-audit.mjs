@@ -64,12 +64,12 @@ for (const file of mdFiles) {
     failures.push(`Canonical mismatch for ${slug}: expected path ${expectedCanonicalPath}`);
   }
 
-  const heading = html.match(/<h1>([^<]+)<\/h1>/i)?.[1]?.trim();
+  const heading = html.match(/<h1(?:\s+[^>]*)?>([^<]+)<\/h1>/i)?.[1]?.trim();
   if (!heading) failures.push(`Missing <h1> in posts/${slug}/index.html`);
 
-  const expectedRef = `../posts/${slug}/`;
-  if (listHtml && !listHtml.includes(expectedRef)) {
-    failures.push(`list/index.html missing link to ${expectedRef}`);
+  const expectedRefs = [`../posts/${slug}/`, `/posts/${slug}/`];
+  if (listHtml && !expectedRefs.some((ref) => listHtml.includes(ref))) {
+    failures.push(`list/index.html missing link to ${expectedRefs.join(' or ')}`);
   }
 
   const numeric = slug.match(/^sample-post-(\d{3})$/);

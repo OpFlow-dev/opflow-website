@@ -1,0 +1,431 @@
+{
+  "capturedAt": "2026-02-22T16:25:11.011Z",
+  "refBase": "https://wangyu.me",
+  "cloneBase": "http://127.0.0.1:58050",
+  "viewports": [
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 1600
+      },
+      "ref": {
+        "url": "https://wangyu.me/",
+        "rects": {
+          "header": {
+            "x": 0,
+            "y": 0,
+            "width": 1440,
+            "height": 201.296875,
+            "top": 0,
+            "bottom": 201.296875
+          },
+          "active": {
+            "x": 274,
+            "y": 137.5,
+            "width": 94.25,
+            "height": 63.796875,
+            "top": 137.5,
+            "bottom": 201.296875
+          },
+          "icon": {
+            "x": 294,
+            "y": 160.046875,
+            "width": 26.25,
+            "height": 17.5,
+            "top": 160.046875,
+            "bottom": 177.546875
+          },
+          "text": {
+            "x": 320.25,
+            "y": 160.5,
+            "width": 28,
+            "height": 16,
+            "top": 160.5,
+            "bottom": 176.5
+          },
+          "topBtn": {
+            "x": 1370,
+            "y": 1500,
+            "width": 40,
+            "height": 40,
+            "top": 1500,
+            "bottom": 1540
+          },
+          "topBtnSvg": {
+            "x": 1379.5,
+            "y": 1509.5,
+            "width": 21,
+            "height": 21,
+            "top": 1509.5,
+            "bottom": 1530.5
+          }
+        },
+        "styles": {
+          "active": {
+            "color": "rgb(54, 69, 217)",
+            "box-shadow": "none",
+            "border-bottom-width": "0px",
+            "border-bottom-color": "rgb(35, 55, 255)"
+          },
+          "icon": {
+            "font-size": "17.5px",
+            "width": "17.5px",
+            "height": "17.5px",
+            "padding-right": "8.75px",
+            "margin-right": "0px",
+            "box-sizing": "content-box",
+            "margin-top": "-2px"
+          },
+          "topBtn": {
+            "width": "40px",
+            "height": "40px",
+            "border-top-width": "0px",
+            "border-top-style": "none",
+            "border-top-color": "rgb(0, 0, 0)",
+            "border-radius": "3px",
+            "background-color": "rgb(238, 238, 238)",
+            "right": "30px",
+            "bottom": "60px"
+          },
+          "topBtnSvg": {
+            "width": "21px",
+            "height": "21px"
+          }
+        },
+        "derived": {
+          "headerHeight": 201.296875,
+          "headerGap": 100,
+          "iconTextWidthRatio": 0.9375,
+          "iconTextHeightRatio": 1.09375,
+          "activeHasUnderline": false,
+          "topBtnAspect": 1
+        }
+      },
+      "clone": {
+        "url": "http://127.0.0.1:58050/",
+        "rects": {
+          "header": {
+            "x": 0,
+            "y": 0,
+            "width": 1440,
+            "height": 201.296875,
+            "top": 0,
+            "bottom": 201.296875
+          },
+          "active": {
+            "x": 274,
+            "y": 137.5,
+            "width": 94.25,
+            "height": 63.796875,
+            "top": 137.5,
+            "bottom": 201.296875
+          },
+          "icon": {
+            "x": 294,
+            "y": 160.046875,
+            "width": 26.25,
+            "height": 17.5,
+            "top": 160.046875,
+            "bottom": 177.546875
+          },
+          "text": {
+            "x": 320.25,
+            "y": 160.5,
+            "width": 28,
+            "height": 16,
+            "top": 160.5,
+            "bottom": 176.5
+          },
+          "topBtn": {
+            "x": 1370,
+            "y": 1500,
+            "width": 40,
+            "height": 40,
+            "top": 1500,
+            "bottom": 1540
+          },
+          "topBtnSvg": {
+            "x": 1379.5,
+            "y": 1509.5,
+            "width": 21,
+            "height": 21,
+            "top": 1509.5,
+            "bottom": 1530.5
+          }
+        },
+        "styles": {
+          "active": {
+            "color": "rgb(54, 69, 217)",
+            "box-shadow": "none",
+            "border-bottom-width": "0px",
+            "border-bottom-color": "rgb(54, 69, 217)"
+          },
+          "icon": {
+            "font-size": "17.5px",
+            "width": "17.5px",
+            "height": "17.5px",
+            "padding-right": "8.75px",
+            "margin-right": "0px",
+            "box-sizing": "content-box",
+            "margin-top": "-2px"
+          },
+          "topBtn": {
+            "width": "40px",
+            "height": "40px",
+            "border-top-width": "0px",
+            "border-top-style": "none",
+            "border-top-color": "rgb(0, 0, 0)",
+            "border-radius": "3px",
+            "background-color": "rgb(238, 238, 238)",
+            "right": "30px",
+            "bottom": "60px"
+          },
+          "topBtnSvg": {
+            "width": "21px",
+            "height": "21px"
+          }
+        },
+        "derived": {
+          "headerHeight": 201.296875,
+          "headerGap": 100,
+          "iconTextWidthRatio": 0.9375,
+          "iconTextHeightRatio": 1.09375,
+          "activeHasUnderline": false,
+          "topBtnAspect": 1
+        }
+      },
+      "deltas": {
+        "headerHeight": 0,
+        "headerGap": 0,
+        "iconTextWidthRatio": 0,
+        "iconTextHeightRatio": 0,
+        "topBtnSvgWidth": 0,
+        "topBtnSvgHeight": 0
+      },
+      "visualDiff": {
+        "header": {
+          "mismatchedPixels": 2324,
+          "totalPixels": 360000,
+          "mismatchRatio": 0.006456
+        },
+        "topbtn": {
+          "mismatchedPixels": 0,
+          "totalPixels": 4624,
+          "mismatchRatio": 0
+        }
+      }
+    },
+    {
+      "viewport": {
+        "width": 1200,
+        "height": 1600
+      },
+      "ref": {
+        "url": "https://wangyu.me/",
+        "rects": {
+          "header": {
+            "x": 0,
+            "y": 0,
+            "width": 1200,
+            "height": 201.296875,
+            "top": 0,
+            "bottom": 201.296875
+          },
+          "active": {
+            "x": 154,
+            "y": 137.5,
+            "width": 94.25,
+            "height": 63.796875,
+            "top": 137.5,
+            "bottom": 201.296875
+          },
+          "icon": {
+            "x": 174,
+            "y": 160.046875,
+            "width": 26.25,
+            "height": 17.5,
+            "top": 160.046875,
+            "bottom": 177.546875
+          },
+          "text": {
+            "x": 200.25,
+            "y": 160.5,
+            "width": 28,
+            "height": 16,
+            "top": 160.5,
+            "bottom": 176.5
+          },
+          "topBtn": {
+            "x": 1130,
+            "y": 1500,
+            "width": 40,
+            "height": 40,
+            "top": 1500,
+            "bottom": 1540
+          },
+          "topBtnSvg": {
+            "x": 1139.5,
+            "y": 1509.5,
+            "width": 21,
+            "height": 21,
+            "top": 1509.5,
+            "bottom": 1530.5
+          }
+        },
+        "styles": {
+          "active": {
+            "color": "rgb(54, 69, 217)",
+            "box-shadow": "none",
+            "border-bottom-width": "0px",
+            "border-bottom-color": "rgb(35, 55, 255)"
+          },
+          "icon": {
+            "font-size": "17.5px",
+            "width": "17.5px",
+            "height": "17.5px",
+            "padding-right": "8.75px",
+            "margin-right": "0px",
+            "box-sizing": "content-box",
+            "margin-top": "-2px"
+          },
+          "topBtn": {
+            "width": "40px",
+            "height": "40px",
+            "border-top-width": "0px",
+            "border-top-style": "none",
+            "border-top-color": "rgb(0, 0, 0)",
+            "border-radius": "3px",
+            "background-color": "rgb(238, 238, 238)",
+            "right": "30px",
+            "bottom": "60px"
+          },
+          "topBtnSvg": {
+            "width": "21px",
+            "height": "21px"
+          }
+        },
+        "derived": {
+          "headerHeight": 201.296875,
+          "headerGap": 100,
+          "iconTextWidthRatio": 0.9375,
+          "iconTextHeightRatio": 1.09375,
+          "activeHasUnderline": false,
+          "topBtnAspect": 1
+        }
+      },
+      "clone": {
+        "url": "http://127.0.0.1:58050/",
+        "rects": {
+          "header": {
+            "x": 0,
+            "y": 0,
+            "width": 1200,
+            "height": 201.296875,
+            "top": 0,
+            "bottom": 201.296875
+          },
+          "active": {
+            "x": 154,
+            "y": 137.5,
+            "width": 94.25,
+            "height": 63.796875,
+            "top": 137.5,
+            "bottom": 201.296875
+          },
+          "icon": {
+            "x": 174,
+            "y": 160.046875,
+            "width": 26.25,
+            "height": 17.5,
+            "top": 160.046875,
+            "bottom": 177.546875
+          },
+          "text": {
+            "x": 200.25,
+            "y": 160.5,
+            "width": 28,
+            "height": 16,
+            "top": 160.5,
+            "bottom": 176.5
+          },
+          "topBtn": {
+            "x": 1130,
+            "y": 1500,
+            "width": 40,
+            "height": 40,
+            "top": 1500,
+            "bottom": 1540
+          },
+          "topBtnSvg": {
+            "x": 1139.5,
+            "y": 1509.5,
+            "width": 21,
+            "height": 21,
+            "top": 1509.5,
+            "bottom": 1530.5
+          }
+        },
+        "styles": {
+          "active": {
+            "color": "rgb(54, 69, 217)",
+            "box-shadow": "none",
+            "border-bottom-width": "0px",
+            "border-bottom-color": "rgb(54, 69, 217)"
+          },
+          "icon": {
+            "font-size": "17.5px",
+            "width": "17.5px",
+            "height": "17.5px",
+            "padding-right": "8.75px",
+            "margin-right": "0px",
+            "box-sizing": "content-box",
+            "margin-top": "-2px"
+          },
+          "topBtn": {
+            "width": "40px",
+            "height": "40px",
+            "border-top-width": "0px",
+            "border-top-style": "none",
+            "border-top-color": "rgb(0, 0, 0)",
+            "border-radius": "3px",
+            "background-color": "rgb(238, 238, 238)",
+            "right": "30px",
+            "bottom": "60px"
+          },
+          "topBtnSvg": {
+            "width": "21px",
+            "height": "21px"
+          }
+        },
+        "derived": {
+          "headerHeight": 201.296875,
+          "headerGap": 100,
+          "iconTextWidthRatio": 0.9375,
+          "iconTextHeightRatio": 1.09375,
+          "activeHasUnderline": false,
+          "topBtnAspect": 1
+        }
+      },
+      "deltas": {
+        "headerHeight": 0,
+        "headerGap": 0,
+        "iconTextWidthRatio": 0,
+        "iconTextHeightRatio": 0,
+        "topBtnSvgWidth": 0,
+        "topBtnSvgHeight": 0
+      },
+      "visualDiff": {
+        "header": {
+          "mismatchedPixels": 2324,
+          "totalPixels": 300000,
+          "mismatchRatio": 0.007747
+        },
+        "topbtn": {
+          "mismatchedPixels": 0,
+          "totalPixels": 4624,
+          "mismatchRatio": 0
+        }
+      }
+    }
+  ]
+}

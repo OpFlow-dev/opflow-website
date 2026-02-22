@@ -22,10 +22,9 @@ function escapeHtml(value) {
 
 function slugifyAnchor(value) {
   return String(value)
-    .toLowerCase()
     .trim()
     .replaceAll(/\s+/g, '-')
-    .replaceAll(/[^a-z0-9\-\u4e00-\u9fff]/g, '');
+    .replaceAll(/[^\p{L}\p{N}._-]/gu, '');
 }
 
 function parseDate(dateString) {
@@ -179,7 +178,6 @@ function navLink(href, label, iconPath, active) {
 }
 
 function renderHeader(depth, active) {
-  const prefix = '../'.repeat(depth);
   return `<header class="header">
     <div class="wrap">
       <h1 class="site-name">Opflow::Space</h1>
@@ -187,10 +185,10 @@ function renderHeader(depth, active) {
       <nav class="site-nav">
         <ul>
         ${navLink('/', '首页', 'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z', active === 'home')}
-        ${navLink(`${prefix}list/`, '列表', 'M4 10.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5m0-6c-.83 0-1.5.67-1.5 1.5S3.17 7.5 4 7.5 5.5 6.83 5.5 6 4.83 4.5 4 4.5m0 12c-.83 0-1.5.68-1.5 1.5s.68 1.5 1.5 1.5 1.5-.68 1.5-1.5-.67-1.5-1.5-1.5M7 19h14v-2H7zm0-6h14v-2H7zm0-8v2h14V5z', active === 'list')}
-        ${navLink(`${prefix}categories/`, '分类', 'M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8z', active === 'categories')}
-        ${navLink(`${prefix}tags/`, '标签', 'm21.41 11.58-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58s1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41s-.23-1.06-.59-1.42M5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7', active === 'tags')}
-        ${navLink(`${prefix}about/`, '关于', 'M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z', active === 'about')}
+        ${navLink('/list/', '列表', 'M4 10.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5m0-6c-.83 0-1.5.67-1.5 1.5S3.17 7.5 4 7.5 5.5 6.83 5.5 6 4.83 4.5 4 4.5m0 12c-.83 0-1.5.68-1.5 1.5s.68 1.5 1.5 1.5 1.5-.68 1.5-1.5-.67-1.5-1.5-1.5M7 19h14v-2H7zm0-6h14v-2H7zm0-8v2h14V5z', active === 'list')}
+        ${navLink('/categories/', '分类', 'M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8z', active === 'categories')}
+        ${navLink('/tags/', '标签', 'm21.41 11.58-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58s1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41s-.23-1.06-.59-1.42M5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7', active === 'tags')}
+        ${navLink('/about/', '关于', 'M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z', active === 'about')}
         </ul>
       </nav>
     </div>
@@ -234,9 +232,9 @@ function renderPage({ title, description = title, canonicalPath, depth, active, 
 </html>`;
 }
 
-function renderPostList(posts, hrefPrefix) {
+function renderPostList(posts) {
   return posts
-    .map((post) => `<li class="list-item"><a href="${hrefPrefix}${post.slug}/"><span class="post-date"><time datetime="${toIsoDateTime(post.date)}">${post.date}</time></span><p class="post-title">${escapeHtml(post.title)}</p></a></li>`)
+    .map((post) => `<li class="list-item"><a href="/posts/${post.slug}/"><span class="post-date"><time datetime="${toIsoDateTime(post.date)}">${post.date}</time></span><p class="post-title">${escapeHtml(post.title)}</p></a></li>`)
     .join(' ');
 }
 
@@ -335,16 +333,19 @@ export async function buildSite() {
     const postBody = md.render(post.content);
     const categoryAnchor = slugifyAnchor(post.category);
     const inlineTagLinks = post.tags
-      .map((tag) => `<a href="../../tags/#${slugifyAnchor(tag)}">${escapeHtml(tag)}</a>`)
-      .join('、');
-    const tagChips = post.tags
-      .map((tag) => `<a href="../../tags/#${slugifyAnchor(tag)}">${escapeHtml(tag)}</a>`)
-      .join(' ');
+      .map((tag) => `<a href="/tags/#${slugifyAnchor(tag)}">${escapeHtml(tag)}</a>`)
+      .join('');
+    const postInfo = [
+      `<span class="category">分类：<a href="/categories/#${categoryAnchor}">${escapeHtml(post.category)}</a></span>`,
+      post.tags.length ? `<span class="tags">标签：${inlineTagLinks}</span>` : '',
+      `<span>创建时间：${escapeHtml(post.date)}</span>`,
+    ]
+      .filter(Boolean)
+      .join('');
 
     const contentHtml = `
-<h1>${escapeHtml(post.title)}</h1>
-<p>发布时间：${escapeHtml(post.date)} ｜ 分类：<a href="../../categories/#${categoryAnchor}">${escapeHtml(post.category)}</a>${post.tags.length ? ` ｜ 标签：${inlineTagLinks}` : ''}</p>
-${post.tags.length ? `<div class="tag-list">${tagChips}</div>` : ''}
+<h1 class="title">${escapeHtml(post.title)}</h1>
+<div class="info">${postInfo}</div>
 <p>${escapeHtml(post.summary)}</p>
 ${postBody}
 `;
@@ -371,9 +372,9 @@ ${postBody}
 </blockquote>
 <div class="post-list">
   <h2 class="post-list-header"><svg class="list-header-icon" focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2M12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8"></path><path d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z"></path></svg>最近发布</h2>
-  <ul class="m-list">${renderPostList(recent, 'posts/')}</ul>
+  <ul class="m-list">${renderPostList(recent)}</ul>
 </div>
-<p class="more"><a href="list/">查看全部</a></p>
+<p class="more"><a href="/list">查看全部</a></p>
 `;
 
   await writePage(path.join(ROOT_DIR, 'index.html'), renderPage({
@@ -384,7 +385,7 @@ ${postBody}
     contentHtml: indexContent,
   }));
 
-  const listContent = `<h1>列表</h1><div class="post-list"><ul class="m-list">${renderPostList(publishedPosts, '../posts/')}</ul></div>`;
+  const listContent = `<h1>列表</h1><div class="post-list"><ul class="m-list">${renderPostList(publishedPosts)}</ul></div>`;
   await writePage(path.join(ROOT_DIR, 'list', 'index.html'), renderPage({
     title: '列表',
     canonicalPath: '/list/',
@@ -398,13 +399,13 @@ ${postBody}
     .map(([category, bucket]) => `<a href="#${slugifyAnchor(category)}">${escapeHtml(category)} (${bucket.length})</a>`)
     .join(' ');
   const categorySections = categoryGroups
-    .map(([category, bucket]) => `<div class="post-list"><h2 class="post-list-header" id="${slugifyAnchor(category)}"><svg class="list-header-icon" focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8z"></path></svg> ${escapeHtml(category)}</h2><ul class="m-list">${renderPostList(bucket, '../posts/')}</ul></div>`)
+    .map(([category, bucket]) => `<div class="post-list"><h2 class="post-list-header" id="${slugifyAnchor(category)}"><svg class="list-header-icon" focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8z"></path></svg> ${escapeHtml(category)}</h2><ul class="m-list">${renderPostList(bucket)}</ul></div>`)
     .join(' ');
 
   const categoriesContent = `
 <h1>分类</h1>
 <div class="tag-list">${categoryLinks}</div>
-<div class="post-list"><h2 class="post-list-header" id="recent"><svg class="list-header-icon" focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2M12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8"></path><path d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z"></path></svg> 最近发布</h2><ul class="m-list">${renderPostList(recent, '../posts/')}</ul></div>
+<div class="post-list"><h2 class="post-list-header" id="recent"><svg class="list-header-icon" focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2M12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8"></path><path d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z"></path></svg> 最近发布</h2><ul class="m-list">${renderPostList(recent)}</ul></div>
 <div class="category-list">${categorySections}</div>
 `;
 
@@ -421,13 +422,13 @@ ${postBody}
     .map(([tag, bucket]) => `<a href="#${slugifyAnchor(tag)}">${escapeHtml(tag)} (${bucket.length})</a>`)
     .join(' ');
   const tagSections = tagGroups
-    .map(([tag, bucket]) => `<div class="post-list"><h2 class="post-list-header" id="${slugifyAnchor(tag)}"><svg class="list-header-icon" focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="m21.41 11.58-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58s1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41s-.23-1.06-.59-1.42M5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7"></path></svg> ${escapeHtml(tag)}</h2><ul class="m-list">${renderPostList(bucket, '../posts/')}</ul></div>`)
+    .map(([tag, bucket]) => `<div class="post-list"><h2 class="post-list-header" id="${slugifyAnchor(tag)}"><svg class="list-header-icon" focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="m21.41 11.58-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58s1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41s-.23-1.06-.59-1.42M5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7"></path></svg> ${escapeHtml(tag)}</h2><ul class="m-list">${renderPostList(bucket)}</ul></div>`)
     .join(' ');
 
   const tagsContent = `
 <h1>标签</h1>
 <div class="tag-list">${tagLinks}</div>
-<div class="post-list"><h2 class="post-list-header" id="recent"><svg class="list-header-icon" focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2M12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8"></path><path d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z"></path></svg> 最近发布</h2><ul class="m-list">${renderPostList(recent, '../posts/')}</ul></div>
+<div class="post-list"><h2 class="post-list-header" id="recent"><svg class="list-header-icon" focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2M12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8"></path><path d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z"></path></svg> 最近发布</h2><ul class="m-list">${renderPostList(recent)}</ul></div>
 <div class="tag-list">${tagSections}</div>
 `;
 
@@ -437,6 +438,26 @@ ${postBody}
     depth: 1,
     active: 'tags',
     contentHtml: tagsContent,
+  }));
+
+  const aboutContent = `
+<h1>关于</h1>
+<br>
+<br>
+<p>你好，欢迎来到我的主页。我偶尔会在这里写点东西，包括生活感悟、所思所想、学习笔记等等。</p>
+<p>可以通过下面链接找到我：</p>
+<ul>
+  <li>GitHub：<a href="https://github.com/w4096" target="_blank" rel="noopener">w4096</a></li>
+  <li>邮箱：<a href="mailto:wangyu4096@gmail.com">wangyu4096@gmail.com</a></li>
+</ul>
+`;
+
+  await writePage(path.join(ROOT_DIR, 'about', 'index.html'), renderPage({
+    title: '关于',
+    canonicalPath: '/about/',
+    depth: 1,
+    active: 'about',
+    contentHtml: aboutContent,
   }));
 
   await ensurePostAliases(publishedPosts);
