@@ -360,7 +360,7 @@ export async function buildSite() {
       depth: 2,
       active: null,
       contentHtml,
-      extraHead: '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/styles/github.min.css">',
+      extraHead: '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/styles/github.min.css"><style>.typo pre code.hljs{background:transparent!important;padding:0!important}.typo pre .hljs{background:transparent!important}</style>',
       extraScripts: `<script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js"></script>\n  <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/dist/markdown-it.min.js"></script>\n  <script src="../../assets/post-renderer.js?v=${postClientVersion}"></script>`,
     });
 
