@@ -119,7 +119,7 @@ GitHub Actions workflow: `.github/workflows/ci.yml`.
 
 - Triggers on `push` and `pull_request` to `main` and `master`.
 - Uses `actions/checkout@v4` and `actions/setup-node@v4` with Node.js `22`.
-- Installs dependencies with `npm ci --no-audit --no-fund` and runs `npm run qa`.
+- Installs dependencies with `npm install --no-audit --no-fund` and runs `npm run qa`.
 
 ## Deployment Notes (opflow.cc)
 
