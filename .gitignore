@@ -1,5 +1,25 @@
+# Runtime artifacts
 .server.log
 .server.pid
+
+# Python
 .venv/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+npm-debug.log*
+
+# QA artifacts
 qa-screenshots/
+coverage/
+
+# Reference snapshots
 ref-html/
+
+# OS/editor junk
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
