@@ -331,10 +331,11 @@ mark {
 
 .header .nav-icon {
   padding-right: 0.5em;
-  width: 12px;
-  height: 12px;
+  width: 1em;
+  height: 1em;
   fill: currentColor;
   flex: 0 0 auto;
+  font-size: 1.25rem;
   vertical-align: middle;
   margin-top: -2px;
 }
@@ -538,10 +539,11 @@ mark {
 }
 
 .list-header-icon {
-  width: 18px;
-  height: 18px;
+  width: 1em;
+  height: 1em;
   fill: currentColor;
   flex: 0 0 auto;
+  font-size: 1.5rem;
   margin-right: 0.5em;
   vertical-align: middle;
 }
