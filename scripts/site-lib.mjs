@@ -200,6 +200,7 @@ function renderHeader(depth, active) {
 function renderPage({ title, description = title, canonicalPath, depth, active, contentHtml }) {
   const prefix = '../'.repeat(depth);
   const canonical = `${CANONICAL_BASE}${canonicalPath}`;
+  const assetVersion = getAssetVersionForPage();
   return `<!DOCTYPE html>
 <html lang="zh-cmn">
 <head>
@@ -211,7 +212,7 @@ function renderPage({ title, description = title, canonicalPath, depth, active, 
   <title>${escapeHtml(title)}</title>
   <meta name="title" content="${escapeHtml(title)}">
   <meta name="description" content="${escapeHtml(description)}">
-  <link rel="stylesheet" href="${prefix}assets/style.css">
+  <link rel="stylesheet" href="${prefix}assets/style.css?v=${assetVersion}">
 </head>
 <body>
   ${renderHeader(depth, active)}
@@ -228,7 +229,7 @@ function renderPage({ title, description = title, canonicalPath, depth, active, 
 
   <footer class="footer"><div class="wrap"><div class="copyright"><p>&copy; 2026 Opflow::Space</p></div></div></footer>
 
-  <script src="${prefix}assets/main.js"></script>
+  <script src="${prefix}assets/main.js?v=${assetVersion}"></script>
 </body>
 </html>`;
 }
@@ -293,7 +294,24 @@ async function ensurePostAliases(posts) {
   }
 }
 
+async function getAssetVersion() {
+  const stylePath = path.join(ROOT_DIR, 'assets', 'style.css');
+  const mainPath = path.join(ROOT_DIR, 'assets', 'main.js');
+  const [styleStat, mainStat] = await Promise.all([
+    fs.stat(stylePath),
+    fs.stat(mainPath),
+  ]);
+  return `${Math.trunc(styleStat.mtimeMs)}-${Math.trunc(mainStat.mtimeMs)}`;
+}
+
+let currentAssetVersion = '';
+
+function getAssetVersionForPage() {
+  return currentAssetVersion;
+}
+
 export async function buildSite() {
+  currentAssetVersion = await getAssetVersion();
   const posts = await loadPosts();
   const publishedPosts = posts.filter((post) => post.status === 'published');
   const publishedPostSlugs = new Set(publishedPosts.map((post) => post.slug));

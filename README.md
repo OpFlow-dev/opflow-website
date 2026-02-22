@@ -131,3 +131,5 @@ Recommended rollout sequence:
 4. Keep rollback path simple (previous build + previous port mapping).
 
 Detailed process is documented in `docs/DEPLOYMENT.md`.
+
+Generated pages append a deterministic `?v=<timestamp-pair>` query to `assets/style.css` and `assets/main.js` for cache busting.
