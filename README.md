@@ -102,8 +102,12 @@ Then open `http://127.0.0.1:59051/admin`.
 Admin API/UI behavior:
 
 - Uses `content/posts/*.md` as source of truth.
+- Post frontmatter supports `status: "published" | "draft"`; missing status defaults to `published`.
+- Static generation (`posts/*`, homepage/list/categories/tags, numeric aliases) includes only `published` posts.
 - Create/edit/delete operations rewrite markdown and rebuild static pages.
 - Manual rebuild is available from the UI and `POST /admin/api/rebuild`.
+- Admin editor includes a markdown toolbar and image upload button.
+- Image upload endpoint: authenticated `POST /admin/api/upload-image` with multipart field `image`, returning `/assets/uploads/<filename>`.
 
 Security note:
 

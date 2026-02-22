@@ -31,9 +31,14 @@ for (const file of mdFiles) {
   const markdownPath = path.join(contentDir, file);
   const parsed = matter(fs.readFileSync(markdownPath, 'utf8'));
   const slug = String(parsed.data?.slug ?? '').trim();
+  const status = String(parsed.data?.status ?? 'published').trim().toLowerCase() || 'published';
 
   if (!slug) {
     failures.push(`Missing slug in ${path.relative(ROOT, markdownPath)}`);
+    continue;
+  }
+  if (status !== 'published' && status !== 'draft') {
+    failures.push(`Invalid status in ${path.relative(ROOT, markdownPath)}: ${status}`);
     continue;
   }
   if (seen.has(slug)) {
@@ -41,6 +46,9 @@ for (const file of mdFiles) {
     continue;
   }
   seen.add(slug);
+  if (status !== 'published') {
+    continue;
+  }
 
   const postHtmlPath = path.join(postsDir, slug, 'index.html');
   if (!fs.existsSync(postHtmlPath)) {
@@ -91,4 +99,11 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log(`post-alias-audit: OK (${mdFiles.length} markdown posts verified)`);
+const publishedCount = mdFiles.filter((file) => {
+  const markdownPath = path.join(contentDir, file);
+  const parsed = matter(fs.readFileSync(markdownPath, 'utf8'));
+  const status = String(parsed.data?.status ?? 'published').trim().toLowerCase() || 'published';
+  return status === 'published';
+}).length;
+
+console.log(`post-alias-audit: OK (${publishedCount} published markdown posts verified)`);

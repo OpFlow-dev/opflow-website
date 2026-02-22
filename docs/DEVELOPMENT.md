@@ -52,9 +52,18 @@ Open `http://127.0.0.1:59051/admin`, then:
 
 - Login with `ADMIN_PASSWORD`.
 - Create/update/delete markdown posts.
+- Set each post status as `published` or `draft` in the editor.
+- Use the markdown toolbar for H2/bold/italic/code/link/quote/list/code-block snippets.
+- Use toolbar `Upload Image` to select a local image and auto-insert markdown (`![alt](/assets/uploads/...)`) at cursor.
 - Use `Rebuild` to regenerate static pages on demand.
 
 All admin write operations trigger static regeneration automatically.
+
+Status semantics:
+
+- `published`: included in generated `posts/<slug>/index.html`, home/list/categories/tags, and numeric alias checks.
+- `draft`: stored in markdown but excluded from generated public pages.
+- Missing `status` in old markdown is treated as `published` for backward compatibility.
 
 ## Change Safety Rules
 

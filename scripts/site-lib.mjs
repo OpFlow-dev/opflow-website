@@ -62,6 +62,13 @@ function normalizeTags(tags) {
   return [];
 }
 
+function normalizeStatus(status) {
+  const value = String(status ?? 'published').trim().toLowerCase();
+  if (!value) return 'published';
+  if (value === 'published' || value === 'draft') return value;
+  throw new Error('status must be published or draft');
+}
+
 function validatePostPayload(input, { allowSlugMismatch = false, slugFromPath = null } = {}) {
   const slug = String(input.slug ?? slugFromPath ?? '').trim();
   const title = String(input.title ?? '').trim();
@@ -70,6 +77,7 @@ function validatePostPayload(input, { allowSlugMismatch = false, slugFromPath = 
   const summary = String(input.summary ?? '').trim();
   const content = String(input.content ?? '').replace(/\r\n/g, '\n').trim();
   const tags = normalizeTags(input.tags);
+  const status = normalizeStatus(input.status);
 
   if (!slug) throw new Error('slug is required');
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) throw new Error('slug must be kebab-case lowercase');
@@ -83,7 +91,7 @@ function validatePostPayload(input, { allowSlugMismatch = false, slugFromPath = 
     throw new Error('slug in payload must match URL slug');
   }
 
-  return { slug, title, date, category, tags, summary, content };
+  return { slug, title, date, category, tags, summary, content, status };
 }
 
 export function normalizePostPayload(input, options = {}) {
@@ -100,6 +108,7 @@ export function serializePostMarkdown(post) {
     `slug: ${frontmatterValue(post.slug)}`,
     `title: ${frontmatterValue(post.title)}`,
     `date: ${frontmatterValue(post.date)}`,
+    `status: ${frontmatterValue(post.status)}`,
     `category: ${frontmatterValue(post.category)}`,
     'tags:',
     ...post.tags.map((tag) => `  - ${frontmatterValue(tag)}`),
@@ -128,6 +137,7 @@ async function readPostFromFile(filePath) {
     tags: normalizeTags(data.tags),
     summary: String(data.summary ?? '').trim(),
     content: String(parsed.content ?? '').trim(),
+    status: normalizeStatus(data.status),
   };
 
   validatePostPayload(post);
@@ -285,7 +295,8 @@ async function ensurePostAliases(posts) {
 
 export async function buildSite() {
   const posts = await loadPosts();
-  const postSlugs = new Set(posts.map((post) => post.slug));
+  const publishedPosts = posts.filter((post) => post.status === 'published');
+  const publishedPostSlugs = new Set(publishedPosts.map((post) => post.slug));
 
   await fs.mkdir(PUBLIC_POSTS_DIR, { recursive: true });
   const existingPostEntries = await fs.readdir(PUBLIC_POSTS_DIR, { withFileTypes: true });
@@ -293,7 +304,7 @@ export async function buildSite() {
   for (const entry of existingPostEntries) {
     const fullPath = path.join(PUBLIC_POSTS_DIR, entry.name);
     if (entry.isDirectory()) {
-      if (!postSlugs.has(entry.name) && /^sample-post-[a-z0-9-]+$/.test(entry.name)) {
+      if (!publishedPostSlugs.has(entry.name) && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(entry.name)) {
         await fs.rm(fullPath, { recursive: true, force: true });
       }
     }
@@ -302,7 +313,7 @@ export async function buildSite() {
     }
   }
 
-  for (const post of posts) {
+  for (const post of publishedPosts) {
     const postBody = md.render(post.content);
     const contentHtml = `
 <h1>${escapeHtml(post.title)}</h1>
@@ -323,7 +334,7 @@ ${postBody}
     await writePage(path.join(PUBLIC_POSTS_DIR, post.slug, 'index.html'), postHtml);
   }
 
-  const recent = posts.slice(0, 10);
+  const recent = publishedPosts.slice(0, 10);
   const indexContent = `
 <h1>首页</h1>
 <p><img src="assets/hero.svg" style="aspect-ratio: 426/251; width: 100%;" alt="sample cover" fetchpriority="high"></p>
@@ -346,7 +357,7 @@ ${postBody}
     contentHtml: indexContent,
   }));
 
-  const listContent = `<h1>列表</h1><div class="post-list"><ul class="m-list">${renderPostList(posts, '../posts/')}</ul></div>`;
+  const listContent = `<h1>列表</h1><div class="post-list"><ul class="m-list">${renderPostList(publishedPosts, '../posts/')}</ul></div>`;
   await writePage(path.join(ROOT_DIR, 'list', 'index.html'), renderPage({
     title: '列表',
     canonicalPath: '/list/',
@@ -355,7 +366,7 @@ ${postBody}
     contentHtml: listContent,
   }));
 
-  const categoryGroups = buildCategoryMap(posts);
+  const categoryGroups = buildCategoryMap(publishedPosts);
   const categoryLinks = categoryGroups
     .map(([category, bucket]) => `<a href="#${slugifyAnchor(category)}">${escapeHtml(category)} (${bucket.length})</a>`)
     .join(' ');
@@ -378,7 +389,7 @@ ${postBody}
     contentHtml: categoriesContent,
   }));
 
-  const tagGroups = buildTagMap(posts);
+  const tagGroups = buildTagMap(publishedPosts);
   const tagLinks = tagGroups
     .map(([tag, bucket]) => `<a href="#${slugifyAnchor(tag)}">${escapeHtml(tag)} (${bucket.length})</a>`)
     .join(' ');
@@ -401,9 +412,9 @@ ${postBody}
     contentHtml: tagsContent,
   }));
 
-  await ensurePostAliases(posts);
+  await ensurePostAliases(publishedPosts);
 
-  return { postCount: posts.length };
+  return { postCount: publishedPosts.length };
 }
 
 export function buildTaxonomy(posts) {

@@ -20,10 +20,13 @@ const elements = {
   logoutBtn: document.getElementById('logout-btn'),
   deleteBtn: document.getElementById('delete-btn'),
   preview: document.getElementById('preview'),
+  toolbar: document.querySelector('.toolbar'),
+  imageUploadInput: document.getElementById('image-upload-input'),
   fields: {
     slug: document.getElementById('slug'),
     title: document.getElementById('title'),
     date: document.getElementById('date'),
+    status: document.getElementById('status-field'),
     category: document.getElementById('category'),
     tags: document.getElementById('tags'),
     summary: document.getElementById('summary'),
@@ -31,16 +34,31 @@ const elements = {
   },
 };
 
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
 function setStatus(message, isError = false) {
   elements.status.textContent = message;
   elements.status.style.color = isError ? '#8d2b1f' : '#1f1a16';
 }
 
 async function api(path, options = {}) {
+  const headers = new Headers(options.headers || {});
+  const isFormData = options.body instanceof FormData;
+  if (!isFormData && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
   const response = await fetch(`/admin/api${path}`, {
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
     ...options,
+    headers,
   });
 
   const payload = await response.json().catch(() => ({}));
@@ -57,6 +75,7 @@ function readForm() {
     slug: elements.fields.slug.value.trim(),
     title: elements.fields.title.value.trim(),
     date: elements.fields.date.value.trim(),
+    status: elements.fields.status.value,
     category: elements.fields.category.value.trim(),
     tags: elements.fields.tags.value
       .split(',')
@@ -72,6 +91,7 @@ function writeForm(post) {
     slug: '',
     title: '',
     date: new Date().toISOString().slice(0, 10),
+    status: 'published',
     category: '',
     tags: [],
     summary: '',
@@ -81,6 +101,7 @@ function writeForm(post) {
   elements.fields.slug.value = data.slug;
   elements.fields.title.value = data.title;
   elements.fields.date.value = data.date;
+  elements.fields.status.value = data.status || 'published';
   elements.fields.category.value = data.category;
   elements.fields.tags.value = (data.tags || []).join(', ');
   elements.fields.summary.value = data.summary;
@@ -102,7 +123,9 @@ function renderList() {
   elements.postList.innerHTML = state.filtered
     .map((post) => {
       const activeClass = post.slug === state.selectedSlug ? ' active' : '';
-      return `<li class="post-item${activeClass}" data-slug="${post.slug}"><strong>${post.title}</strong><p>${post.date} · ${post.slug}</p></li>`;
+      const status = post.status || 'published';
+      const draftClass = status === 'draft' ? ' draft' : '';
+      return `<li class="post-item${activeClass}${draftClass}" data-slug="${escapeHtml(post.slug)}"><strong>${escapeHtml(post.title)}</strong><p class="meta-line"><span>${escapeHtml(post.date)} · ${escapeHtml(post.slug)}</span><span class="badge status-${status}">${escapeHtml(status)}</span></p></li>`;
     })
     .join('');
 }
@@ -142,6 +165,95 @@ async function checkSession() {
     elements.loginPanel.classList.remove('hidden');
     elements.workspace.classList.add('hidden');
   }
+}
+
+function replaceSelection({ prefix = '', suffix = '', placeholder = '' }) {
+  const textarea = elements.fields.content;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const selected = textarea.value.slice(start, end);
+  const insertion = `${prefix}${selected || placeholder}${suffix}`;
+  textarea.setRangeText(insertion, start, end, 'end');
+  if (!selected && placeholder) {
+    const cursorStart = start + prefix.length;
+    const cursorEnd = cursorStart + placeholder.length;
+    textarea.setSelectionRange(cursorStart, cursorEnd);
+  }
+  textarea.focus();
+  updatePreview();
+}
+
+function prefixSelectedLines(prefix) {
+  const textarea = elements.fields.content;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const text = textarea.value;
+
+  const lineStart = text.lastIndexOf('\n', Math.max(0, start - 1)) + 1;
+  const lineEndRaw = text.indexOf('\n', end);
+  const lineEnd = lineEndRaw === -1 ? text.length : lineEndRaw;
+
+  const block = text.slice(lineStart, lineEnd);
+  const updated = block
+    .split('\n')
+    .map((line) => (line.trim() ? `${prefix}${line}` : line))
+    .join('\n');
+
+  textarea.setRangeText(updated, lineStart, lineEnd, 'end');
+  textarea.focus();
+  updatePreview();
+}
+
+function applyTool(tool) {
+  if (tool === 'h2') {
+    replaceSelection({ prefix: '## ', placeholder: 'Heading' });
+    return;
+  }
+  if (tool === 'bold') {
+    replaceSelection({ prefix: '**', suffix: '**', placeholder: 'bold text' });
+    return;
+  }
+  if (tool === 'italic') {
+    replaceSelection({ prefix: '*', suffix: '*', placeholder: 'italic text' });
+    return;
+  }
+  if (tool === 'code') {
+    replaceSelection({ prefix: '`', suffix: '`', placeholder: 'code' });
+    return;
+  }
+  if (tool === 'link') {
+    replaceSelection({ prefix: '[', suffix: '](https://example.com)', placeholder: 'link text' });
+    return;
+  }
+  if (tool === 'quote') {
+    prefixSelectedLines('> ');
+    return;
+  }
+  if (tool === 'ul') {
+    prefixSelectedLines('- ');
+    return;
+  }
+  if (tool === 'code-block') {
+    replaceSelection({ prefix: '\n```\n', suffix: '\n```\n', placeholder: 'code here' });
+    return;
+  }
+  if (tool === 'image-upload') {
+    elements.imageUploadInput.click();
+  }
+}
+
+async function uploadImageAndInsert(file) {
+  const fd = new FormData();
+  fd.append('image', file);
+  const payload = await api('/upload-image', {
+    method: 'POST',
+    body: fd,
+  });
+
+  const baseName = file.name.replace(/\.[^.]+$/, '').trim() || 'image';
+  const markdown = `![${baseName}](${payload.url})`;
+  replaceSelection({ prefix: markdown });
+  setStatus(`Image uploaded: ${payload.url}`);
 }
 
 elements.loginForm.addEventListener('submit', async (event) => {
@@ -251,5 +363,23 @@ elements.deleteBtn.addEventListener('click', async () => {
 });
 
 elements.fields.content.addEventListener('input', updatePreview);
+
+elements.toolbar.addEventListener('click', (event) => {
+  const btn = event.target.closest('[data-tool]');
+  if (!btn) return;
+  applyTool(btn.dataset.tool);
+});
+
+elements.imageUploadInput.addEventListener('change', async () => {
+  const [file] = elements.imageUploadInput.files || [];
+  elements.imageUploadInput.value = '';
+  if (!file) return;
+
+  try {
+    await uploadImageAndInsert(file);
+  } catch (error) {
+    setStatus(error.message, true);
+  }
+});
 
 checkSession().catch((error) => setStatus(error.message, true));

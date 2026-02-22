@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import crypto from 'node:crypto';
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import express from 'express';
 import cookieParser from 'cookie-parser';
@@ -26,6 +27,67 @@ app.use(express.json({ limit: '2mb' }));
 app.use(cookieParser());
 
 const adminPublicDir = path.join(ROOT_DIR, 'admin', 'public');
+const assetsDir = path.join(ROOT_DIR, 'assets');
+const uploadDir = path.join(assetsDir, 'uploads');
+
+function sanitizeBaseFilename(value) {
+  return String(value)
+    .normalize('NFKD')
+    .replaceAll(/[^\w.-]+/g, '-')
+    .replaceAll(/-+/g, '-')
+    .replaceAll(/^-+|-+$/g, '')
+    .toLowerCase();
+}
+
+function parseMultipartBoundary(contentType) {
+  const match = String(contentType ?? '').match(/multipart\/form-data;\s*boundary=(?:"([^"]+)"|([^;]+))/i);
+  return (match?.[1] || match?.[2] || '').trim();
+}
+
+async function parseImagePartFromMultipart(req) {
+  const boundary = parseMultipartBoundary(req.headers['content-type']);
+  if (!boundary) throw new Error('Expected multipart/form-data');
+
+  const chunks = [];
+  let total = 0;
+  for await (const chunk of req) {
+    total += chunk.length;
+    if (total > 10 * 1024 * 1024) throw new Error('Upload too large (max 10MB)');
+    chunks.push(chunk);
+  }
+
+  const raw = Buffer.concat(chunks).toString('latin1');
+  const parts = raw.split(`--${boundary}`);
+
+  for (const part of parts) {
+    if (!part || part === '--' || part === '--\r\n') continue;
+    const trimmed = part.startsWith('\r\n') ? part.slice(2) : part;
+    const headerEnd = trimmed.indexOf('\r\n\r\n');
+    if (headerEnd === -1) continue;
+
+    const headersText = trimmed.slice(0, headerEnd);
+    let bodyText = trimmed.slice(headerEnd + 4);
+    if (bodyText.endsWith('\r\n')) bodyText = bodyText.slice(0, -2);
+    if (bodyText.endsWith('--')) bodyText = bodyText.slice(0, -2);
+
+    const disposition = headersText.match(/content-disposition:[^\r\n]*/i)?.[0] || '';
+    const fieldName = disposition.match(/name="([^"]+)"/i)?.[1] || '';
+    const originalName = disposition.match(/filename="([^"]*)"/i)?.[1] || '';
+    const mimeType = headersText.match(/content-type:\s*([^\r\n;]+)/i)?.[1]?.trim().toLowerCase() || '';
+
+    if (fieldName !== 'image') continue;
+    if (!originalName) throw new Error('image is required');
+    if (!/^image\//.test(mimeType)) throw new Error('Only image mime types are allowed');
+
+    return {
+      originalName,
+      mimeType,
+      buffer: Buffer.from(bodyText, 'latin1'),
+    };
+  }
+
+  throw new Error('image is required');
+}
 
 function isAuthed(req) {
   return req.cookies?.[COOKIE_NAME] === SESSION_TOKEN;
@@ -81,10 +143,11 @@ app.get('/admin/api/me', (req, res) => {
 app.get('/admin/api/posts', requireAuth, async (_req, res, next) => {
   try {
     const posts = await loadPosts();
-    const metadata = posts.map(({ slug, title, date, category, tags, summary }) => ({
+    const metadata = posts.map(({ slug, title, date, status, category, tags, summary }) => ({
       slug,
       title,
       date,
+      status,
       category,
       tags,
       summary,
@@ -104,6 +167,22 @@ app.get('/admin/api/posts/:slug', requireAuth, async (req, res, next) => {
       return;
     }
     res.json({ post });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/admin/api/upload-image', requireAuth, async (req, res, next) => {
+  try {
+    const image = await parseImagePartFromMultipart(req);
+    const ext = path.extname(image.originalName || '').toLowerCase().slice(0, 16);
+    const stemFromOriginal = path.basename(image.originalName || 'image', ext);
+    const stem = sanitizeBaseFilename(stemFromOriginal) || 'image';
+    const nonce = crypto.randomBytes(6).toString('hex');
+    const filename = `${stem}-${Date.now()}-${nonce}${ext || '.img'}`;
+    await fs.mkdir(uploadDir, { recursive: true });
+    await fs.writeFile(path.join(uploadDir, filename), image.buffer);
+    res.json({ ok: true, url: `/assets/uploads/${filename}` });
   } catch (error) {
     next(error);
   }
@@ -191,6 +270,7 @@ app.post('/admin/api/rebuild', requireAuth, async (_req, res, next) => {
   }
 });
 
+app.use('/assets', express.static(assetsDir));
 app.use('/admin', express.static(adminPublicDir));
 
 app.use((error, _req, res, _next) => {
