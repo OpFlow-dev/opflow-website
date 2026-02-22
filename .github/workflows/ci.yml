@@ -25,10 +25,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm install --no-package-lock --registry=https://registry.npmjs.org --no-audit --no-fund
 
       - name: Run QA
         run: npm run qa
