@@ -10,6 +10,8 @@
 
 ```bash
 npm install
+npm run content:migrate
+npm run build:site
 npm run serve
 ```
 
@@ -37,6 +39,22 @@ npm run check:top-btn
 npm run check:metadata
 npm run check:post-alias
 ```
+
+## Admin Workflow
+
+Start admin backend:
+
+```bash
+ADMIN_PASSWORD=change-me-now ADMIN_PORT=59051 npm run admin
+```
+
+Open `http://127.0.0.1:59051/admin`, then:
+
+- Login with `ADMIN_PASSWORD`.
+- Create/update/delete markdown posts.
+- Use `Rebuild` to regenerate static pages on demand.
+
+All admin write operations trigger static regeneration automatically.
 
 ## Change Safety Rules
 

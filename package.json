@@ -14,6 +14,15 @@
     "check:top-btn": "node scripts/check-top-btn.mjs",
     "check:metadata": "node scripts/check-metadata.mjs",
     "check:post-alias": "node scripts/post-alias-audit.mjs",
+    "content:migrate": "node scripts/migrate-html-to-md.mjs",
+    "build:site": "node scripts/build-site.mjs",
+    "admin": "node admin/server.mjs",
     "qa": "npm run check:links && npm run check:top-btn && npm run check:metadata && npm run check:post-alias"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "express": "^5.1.0",
+    "gray-matter": "^4.0.3",
+    "markdown-it": "^14.1.0"
   }
 }

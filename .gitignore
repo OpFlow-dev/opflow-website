@@ -1,6 +1,8 @@
 # Runtime artifacts
 .server.log
 .server.pid
+.admin.log
+.admin.pid
 
 # Python
 .venv/

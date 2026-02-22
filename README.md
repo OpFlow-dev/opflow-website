@@ -13,11 +13,16 @@ Static website structure clone for engineering practice and delivery workflow ha
 ```text
 .
 ├── about/
+├── admin/
+│   ├── public/
+│   └── server.mjs
 ├── assets/
 │   ├── hero.svg
 │   ├── main.js
 │   └── style.css
 ├── categories/
+├── content/
+│   └── posts/*.md
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   ├── DEVELOPMENT.md
@@ -29,6 +34,9 @@ Static website structure clone for engineering practice and delivery workflow ha
 │   ├── ...
 │   └── sample-post-148/
 ├── scripts/
+│   ├── build-site.mjs
+│   ├── migrate-html-to-md.mjs
+│   ├── site-lib.mjs
 │   ├── check-links.mjs
 │   ├── check-metadata.mjs
 │   ├── check-top-btn.mjs
@@ -46,10 +54,17 @@ Requirements:
 - Node.js 18+
 - Python 3 (for static server)
 
-Install (no dependencies are currently required, but this keeps npm workflow consistent):
+Install:
 
 ```bash
 npm install
+```
+
+Generate markdown content and rebuild static pages:
+
+```bash
+npm run content:migrate
+npm run build:site
 ```
 
 Serve locally:
@@ -73,6 +88,26 @@ npm run check:metadata
 npm run check:post-alias
 npm run qa
 ```
+
+## Admin Backend
+
+Run the admin backend:
+
+```bash
+ADMIN_PASSWORD=change-me-now ADMIN_PORT=59051 npm run admin
+```
+
+Then open `http://127.0.0.1:59051/admin`.
+
+Admin API/UI behavior:
+
+- Uses `content/posts/*.md` as source of truth.
+- Create/edit/delete operations rewrite markdown and rebuild static pages.
+- Manual rebuild is available from the UI and `POST /admin/api/rebuild`.
+
+Security note:
+
+- Change `ADMIN_PASSWORD` before exposing the service anywhere.
 
 ## CI
 

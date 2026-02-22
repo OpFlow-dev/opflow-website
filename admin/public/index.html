@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-cmn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="canonical" href="https://opflow.cc:59051/admin/">
+  <meta name="robots" content="noarchive">
+  <title>Opflow Admin</title>
+  <meta name="title" content="Opflow Admin">
+  <meta name="description" content="Markdown 后台编辑与发布管理">
+  <link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+  <div class="grain"></div>
+  <main class="admin-shell">
+    <header class="admin-header">
+      <div>
+        <p class="eyebrow">Content Control</p>
+        <h1>Opflow Admin</h1>
+      </div>
+      <div class="header-actions">
+        <button id="rebuild-btn" class="btn">Rebuild</button>
+        <button id="new-btn" class="btn">New</button>
+        <button id="logout-btn" class="btn btn-ghost">Logout</button>
+      </div>
+    </header>
+
+    <section id="login-panel" class="panel">
+      <h2>Login</h2>
+      <form id="login-form" class="login-form">
+        <label>Password
+          <input type="password" id="password" required>
+        </label>
+        <button type="submit" class="btn btn-primary">Sign In</button>
+      </form>
+    </section>
+
+    <section id="workspace" class="workspace hidden">
+      <aside class="panel list-panel">
+        <div class="list-head">
+          <h2>Posts</h2>
+          <input id="search" type="search" placeholder="Search title / slug">
+        </div>
+        <ul id="post-list" class="post-list"></ul>
+      </aside>
+
+      <section class="panel editor-panel">
+        <form id="editor-form" class="editor-grid">
+          <label>Slug<input id="slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*"></label>
+          <label>Title<input id="title" required></label>
+          <label>Date<input id="date" required placeholder="YYYY-MM-DD" pattern="\d{4}-\d{2}-\d{2}"></label>
+          <label>Category<input id="category" required></label>
+          <label>Tags (CSV)<input id="tags"></label>
+          <label class="full">Summary<textarea id="summary" rows="2" required></textarea></label>
+          <label class="full">Markdown<textarea id="content" rows="18" required></textarea></label>
+          <div class="editor-actions full">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <button type="button" id="delete-btn" class="btn btn-danger">Delete</button>
+          </div>
+        </form>
+      </section>
+
+      <aside class="panel preview-panel">
+        <h2>Preview</h2>
+        <article id="preview" class="preview"></article>
+      </aside>
+    </section>
+
+    <p id="status" class="status" role="status"></p>
+  </main>
+
+  <button type="button" class="top-btn admin-top-btn" id="top-btn" aria-label="回到顶部">
+    <svg focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path></svg>
+  </button>
+
+  <script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
+  <script src="./app.js" type="module"></script>
+</body>
+</html>
