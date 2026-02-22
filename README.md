@@ -94,7 +94,7 @@ npm run qa
 Run the admin backend:
 
 ```bash
-ADMIN_PASSWORD=change-me-now ADMIN_PORT=59051 npm run admin
+ADMIN_PASSWORD=change-me-now ADMIN_HOST=127.0.0.1 ADMIN_PORT=59051 npm run admin
 ```
 
 Then open `http://127.0.0.1:59051/admin`.

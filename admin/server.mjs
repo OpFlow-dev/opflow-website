@@ -17,6 +17,7 @@ import {
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'change-me-now';
 const ADMIN_PORT = Number(process.env.ADMIN_PORT || 59051);
+const ADMIN_HOST = process.env.ADMIN_HOST || '127.0.0.1';
 const COOKIE_NAME = 'opflow_admin_session';
 const SESSION_TOKEN = crypto.createHash('sha256').update(`opflow::${ADMIN_PASSWORD}`).digest('hex');
 
@@ -25,7 +26,6 @@ app.use(express.json({ limit: '2mb' }));
 app.use(cookieParser());
 
 const adminPublicDir = path.join(ROOT_DIR, 'admin', 'public');
-const markdownVendorDir = path.join(ROOT_DIR, 'node_modules', 'markdown-it', 'dist');
 
 function isAuthed(req) {
   return req.cookies?.[COOKIE_NAME] === SESSION_TOKEN;
@@ -191,7 +191,6 @@ app.post('/admin/api/rebuild', requireAuth, async (_req, res, next) => {
   }
 });
 
-app.use('/admin/vendor', express.static(markdownVendorDir));
 app.use('/admin', express.static(adminPublicDir));
 
 app.use((error, _req, res, _next) => {
@@ -199,6 +198,6 @@ app.use((error, _req, res, _next) => {
   res.status(400).json({ error: message });
 });
 
-app.listen(ADMIN_PORT, () => {
-  console.log(`Admin server running at http://127.0.0.1:${ADMIN_PORT}/admin`);
+app.listen(ADMIN_PORT, ADMIN_HOST, () => {
+  console.log(`Admin server running at http://${ADMIN_HOST}:${ADMIN_PORT}/admin`);
 });
