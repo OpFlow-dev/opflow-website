@@ -292,7 +292,7 @@ mark {
 
 .site-name {
   font-size: 22px;
-  margin-bottom: 20px;
+  margin: 0 0 20px;
   font-weight: 400;
   padding-top: 30px;
   font-family: var(--code-font-family);
@@ -321,6 +321,7 @@ mark {
   display: inline-block;
   text-decoration: none;
   padding: 20px;
+  border-bottom: 2px solid transparent;
 }
 
 .header a:hover,
@@ -334,8 +335,9 @@ mark {
   width: 1em;
   height: 1em;
   fill: currentColor;
+  display: inline-block;
   flex: 0 0 auto;
-  font-size: 1.25rem;
+  font-size: 1.35rem;
   vertical-align: middle;
   margin-top: -2px;
 }
@@ -641,6 +643,7 @@ mark {
   right: 30px;
   cursor: pointer;
   background: #eee;
+  border: none;
   border-radius: 3px;
   width: 40px;
   height: 40px;
