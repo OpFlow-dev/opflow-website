@@ -10,9 +10,16 @@
 
 ```bash
 npm install
-npm run content:migrate
 npm run build:site
 npm run serve
+```
+
+Only when importing legacy HTML post bodies:
+
+```bash
+npm run content:migrate
+npm run content:normalize
+npm run build:site
 ```
 
 Default serve port in `package.json` is `58050` to mirror current canonical examples.
@@ -38,6 +45,7 @@ npm run check:links
 npm run check:top-btn
 npm run check:metadata
 npm run check:post-alias
+npm run check:markdown-source
 ```
 
 ## Admin Workflow
@@ -64,6 +72,12 @@ Status semantics:
 - `published`: included in generated `posts/<slug>/index.html`, home/list/categories/tags, and numeric alias checks.
 - `draft`: stored in markdown but excluded from generated public pages.
 - Missing `status` in old markdown is treated as `published` for backward compatibility.
+
+## Markdown Authoring Rules
+
+- Post body must be Markdown only; do not embed raw HTML tags for structure.
+- Use fenced code blocks (```), Markdown headings/lists/blockquote/links instead of `<pre><code>`, `<h2>`, `<ul>` etc.
+- Run `npm run check:markdown-source` before commit.
 
 ## Change Safety Rules
 

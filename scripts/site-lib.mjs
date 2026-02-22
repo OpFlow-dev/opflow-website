@@ -3,7 +3,7 @@ import path from 'node:path';
 import matter from 'gray-matter';
 import MarkdownIt from 'markdown-it';
 
-const md = new MarkdownIt({ html: true, linkify: true, typographer: false });
+const md = new MarkdownIt({ html: false, linkify: true, typographer: false });
 
 export const ROOT_DIR = process.cwd();
 export const CONTENT_POSTS_DIR = path.join(ROOT_DIR, 'content', 'posts');

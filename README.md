@@ -7,6 +7,7 @@ Static website structure clone for engineering practice and delivery workflow ha
 - Purpose: maintain a static site that mirrors information architecture and interaction behavior for testing and deployment rehearsal.
 - Constraint: this repository is **structure clone only**. Do not copy proprietary or copyrighted source content from external sites.
 - Constraint: keep visible site content stable unless a change request explicitly asks for content updates.
+- Mechanism: all post source content is Markdown-only (`content/posts/*.md`); public HTML is generated from Markdown and should not be edited manually.
 
 ## Directory Tree
 
@@ -29,17 +30,19 @@ Static website structure clone for engineering practice and delivery workflow ha
 │   ├── DEPLOYMENT.md
 │   └── RELEASE.md
 ├── list/
-├── posts/
+├── posts/                     # generated output from markdown (do not edit manually)
 │   ├── sample-post-001/
 │   ├── ...
 │   └── sample-post-148/
 ├── scripts/
 │   ├── build-site.mjs
 │   ├── migrate-html-to-md.mjs
+│   ├── convert-posts-html-to-markdown.mjs
 │   ├── site-lib.mjs
 │   ├── check-links.mjs
 │   ├── check-metadata.mjs
 │   ├── check-top-btn.mjs
+│   ├── check-markdown-source.mjs
 │   └── post-alias-audit.mjs
 ├── tags/
 ├── CONTRIBUTING.md
@@ -60,11 +63,17 @@ Install:
 npm install
 ```
 
-Generate markdown content and rebuild static pages:
+Build static pages from markdown source:
+
+```bash
+npm run build:site
+```
+
+If you import legacy HTML content once, run:
 
 ```bash
 npm run content:migrate
-npm run build:site
+npm run content:normalize
 ```
 
 Serve locally:
@@ -79,6 +88,13 @@ Or run on a random free port:
 npm run serve:random
 ```
 
+## Markdown-only Post Pipeline
+
+- Edit posts only in `content/posts/*.md`.
+- Frontmatter fields: `slug`, `title`, `date`, `status`, `category`, `tags`, `summary`.
+- `npm run build:site` renders markdown into public HTML (`posts/*`, `index`, `list`, `categories`, `tags`).
+- `npm run check:markdown-source` ensures post bodies do not contain raw HTML tags.
+
 ## QA Commands
 
 ```bash
@@ -86,6 +102,7 @@ npm run check:links
 npm run check:top-btn
 npm run check:metadata
 npm run check:post-alias
+npm run check:markdown-source
 npm run qa
 ```
 
@@ -101,7 +118,7 @@ Then open `http://127.0.0.1:59051/admin`.
 
 Admin API/UI behavior:
 
-- Uses `content/posts/*.md` as source of truth.
+- Uses `content/posts/*.md` as source of truth (Markdown-only body content).
 - Post frontmatter supports `status: "published" | "draft"`; missing status defaults to `published`.
 - Static generation (`posts/*`, homepage/list/categories/tags, numeric aliases) includes only `published` posts.
 - Create/edit/delete operations rewrite markdown and rebuild static pages.
