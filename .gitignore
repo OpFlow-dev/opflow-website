@@ -6,6 +6,7 @@
 
 # Python
 .venv/
+.local-libs/
 __pycache__/
 *.pyc
 
