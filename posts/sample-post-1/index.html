@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-cmn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>设计系统里的可复用布局思路</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">跳转到正文</a>
+
+  <header class="site-header">
+    <div class="header-content">
+      <div class="site-info">
+        <div class="site-name"><a href="../../">Opflow Journal</a></div>
+        <div class="site-slogan">Build calmly, learn deeply.</div>
+      </div>
+      <nav class="site-nav" aria-label="Main navigation">
+      <ul>
+      <li><a href="../../">首页</a></li>
+      <li><a href="../../list/">列表</a></li>
+      <li><a href="../../categories/">分类</a></li>
+      <li><a href="../../tags/">标签</a></li>
+      <li><a href="../../about/">关于</a></li>
+      </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="site-main" id="main-content">
+    <article class="article-content">
+      <header class="article-header">
+        <h1 class="article-title">设计系统里的可复用布局思路</h1>
+        <div class="article-meta"><span>2026-02-15</span><span>分类：设计方法</span></div>
+      </header>
+      <div class="article-body">
+        <p>当页面数量逐渐变多时，布局复用是提升效率最直接的方法之一。</p>
+        <h2>先定义信息层级</h2>
+        <p>先确定页面骨架：页头、正文、列表区、补充区，再决定组件粒度。</p>
+        <h3>再抽取重复模式</h3>
+        <ul>
+          <li>统一标题与摘要样式</li>
+          <li>统一列表行距和分隔线</li>
+          <li>统一交互反馈（hover / focus）</li>
+        </ul>
+        <p>通过这些约束，可以在保持一致体验的同时减少重复开发。</p>
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 Opflow Journal</p>
+  </footer>
+
+  <button class="back-to-top" aria-label="Back to top">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="18 15 12 9 6 15"></polyline>
+    </svg>
+  </button>
+
+  <script src="../../assets/main.js"></script>
+</body>
+</html>
