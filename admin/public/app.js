@@ -25,7 +25,26 @@ const state = {
   collapsedCategories: new Set(),
 };
 
-const md = window.markdownit({ html: true, linkify: true, breaks: true });
+const md = window.markdownit({
+  html: false,
+  linkify: true,
+  breaks: true,
+  highlight(code, lang) {
+    if (typeof window.hljs !== 'object') {
+      return `<pre><code>${escapeHtml(code)}</code></pre>`;
+    }
+
+    const language = lang && window.hljs.getLanguage(lang) ? lang : null;
+
+    if (language) {
+      const highlighted = window.hljs.highlight(code, { language, ignoreIllegals: true }).value;
+      return `<pre><code class="hljs language-${language}">${highlighted}</code></pre>`;
+    }
+
+    const highlighted = window.hljs.highlightAuto(code).value;
+    return `<pre><code class="hljs">${highlighted}</code></pre>`;
+  },
+});
 
 const elements = {
   loginPanel: document.getElementById('login-panel'),
@@ -210,6 +229,14 @@ function writeForm(post) {
 
 function updatePreview() {
   elements.preview.innerHTML = md.render(elements.fields.content.value || '');
+
+  if (typeof window.hljs === 'object') {
+    elements.preview.querySelectorAll('pre code').forEach((block) => {
+      if (!block.classList.contains('hljs')) {
+        window.hljs.highlightElement(block);
+      }
+    });
+  }
 }
 
 function getFilteredPosts() {

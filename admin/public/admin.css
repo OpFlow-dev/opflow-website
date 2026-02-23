@@ -424,14 +424,36 @@ textarea {
 }
 
 .preview pre {
-  padding: 10px;
-  border-radius: 8px;
-  background: #f3f4f6;
+  margin: 0 0 12px;
+  padding: 14px 16px;
+  border-radius: 6px;
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
   overflow: auto;
 }
 
 .preview code {
   font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+.preview pre code {
+  display: block;
+  padding: 0;
+  background: transparent !important;
+}
+
+.preview pre code.hljs,
+.preview pre .hljs {
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+.preview p code,
+.preview li code {
+  white-space: pre-wrap;
+  padding: 0.2em 0.4em;
+  background-color: #1b1f230d;
+  border-radius: 2px;
 }
 
 .hidden {
