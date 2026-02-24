@@ -53,6 +53,7 @@ function buildOpenApiDocument() {
       { name: 'categories', description: '分类查询与管理' },
       { name: 'tags', description: '标签查询与管理' },
       { name: 'taxonomy', description: '分类标签统计' },
+      { name: 'mirrors', description: '文章 Markdown/JSON 镜像' },
     ],
     components: {
       securitySchemes: {
@@ -513,6 +514,82 @@ function buildOpenApiDocument() {
                 },
               },
             },
+          },
+        },
+      },
+      '/posts/{slug}': {
+        get: {
+          tags: ['mirrors'],
+          summary: '文章页面与镜像查询（同 URL）',
+          description: '默认返回 HTML 页面；可用 query 参数 format=raw|json 返回 Markdown 原文或 JSON 镜像。',
+          parameters: [
+            { name: 'slug', in: 'path', required: true, schema: { type: 'string' } },
+            { name: 'format', in: 'query', required: false, schema: { type: 'string', enum: ['raw', 'json'] } },
+          ],
+          responses: {
+            200: {
+              description: '成功（根据 format 返回 html/markdown/json）',
+              content: {
+                'text/html': { schema: { type: 'string' } },
+                'text/markdown': { schema: { type: 'string' } },
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    required: ['post', 'mirror'],
+                    properties: {
+                      post: { $ref: '#/components/schemas/PostResource' },
+                      mirror: {
+                        type: 'object',
+                        properties: {
+                          html: { type: 'string' },
+                          md: { type: 'string' },
+                          json: { type: 'string' },
+                          canonical: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            404: { description: '未找到', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          },
+        },
+      },
+      '/posts/{slug}.{ext}': {
+        get: {
+          tags: ['mirrors'],
+          summary: '文章扩展镜像',
+          parameters: [
+            { name: 'slug', in: 'path', required: true, schema: { type: 'string' } },
+            { name: 'ext', in: 'path', required: true, schema: { type: 'string', enum: ['md', 'json'] } },
+          ],
+          responses: {
+            200: {
+              description: 'md 返回 markdown，json 返回 JSON',
+              content: {
+                'text/markdown': { schema: { type: 'string' } },
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    required: ['post', 'mirror'],
+                    properties: {
+                      post: { $ref: '#/components/schemas/PostResource' },
+                      mirror: {
+                        type: 'object',
+                        properties: {
+                          html: { type: 'string' },
+                          md: { type: 'string' },
+                          json: { type: 'string' },
+                          canonical: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            404: { description: '未找到', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
           },
         },
       },
