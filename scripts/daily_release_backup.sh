@@ -67,7 +67,7 @@ cat > "$NOTES_FILE" <<EOF
 Automated daily full backup.
 
 - Generated at: ${DATE_HUMAN}
-- Password: ${PASSWORD}
+- Password: YYYYMMDD (Asia/Shanghai date)
 - Package: ${ASSET_NAME}
 - Includes: website code + local content/data snapshot
 - Excludes: .git, node_modules, venv/cache, transient logs
