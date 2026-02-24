@@ -83,7 +83,6 @@ const elements = {
   tokenCreatedPanel: document.getElementById('token-created-panel'),
   tokenPlainOutput: document.getElementById('token-plain-output'),
   tokenCopyBtn: document.getElementById('token-copy-btn'),
-  rebuildBtn: document.getElementById('rebuild-btn'),
   newBtn: document.getElementById('new-btn'),
   logoutBtn: document.getElementById('logout-btn'),
   deleteBtn: document.getElementById('delete-btn'),
@@ -885,15 +884,6 @@ elements.newBtn.addEventListener('click', () => {
   renderTree();
 });
 
-elements.rebuildBtn.addEventListener('click', async () => {
-  try {
-    const payload = await api('/rebuild', { method: 'POST', body: JSON.stringify({}) });
-    setStatus(`重建完成：共生成 ${payload.build.postCount} 篇文章`);
-    await refreshData(state.selectedSlug);
-  } catch (error) {
-    setStatus(error.message, true);
-  }
-});
 
 elements.logoutBtn.addEventListener('click', async () => {
   try {

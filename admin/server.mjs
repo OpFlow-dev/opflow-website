@@ -52,7 +52,6 @@ function buildOpenApiDocument() {
       { name: 'categories', description: '分类查询与管理' },
       { name: 'tags', description: '标签查询与管理' },
       { name: 'taxonomy', description: '分类标签统计' },
-      { name: 'build', description: '站点重建' },
     ],
     components: {
       securitySchemes: {
@@ -513,31 +512,6 @@ function buildOpenApiDocument() {
                 },
               },
             },
-          },
-        },
-      },
-      '/api/v1/rebuild': {
-        post: {
-          tags: ['build'],
-          summary: '触发站点重建',
-          security: [{ bearerAuth: [] }],
-          responses: {
-            200: {
-              description: '重建完成',
-              content: {
-                'application/json': {
-                  schema: {
-                    type: 'object',
-                    required: ['ok', 'build'],
-                    properties: {
-                      ok: { type: 'boolean' },
-                      build: { $ref: '#/components/schemas/BuildResult' },
-                    },
-                  },
-                },
-              },
-            },
-            401: { description: '未授权', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
           },
         },
       },
@@ -1370,14 +1344,6 @@ app.get('/admin/api/taxonomy', requireAuth, async (_req, res, next) => {
   }
 });
 
-app.post('/admin/api/rebuild', requireAuth, async (_req, res, next) => {
-  try {
-    const result = await buildSite();
-    res.json({ ok: true, build: result });
-  } catch (error) {
-    next(error);
-  }
-});
 
 app.get(OPENAPI_PATH, (_req, res) => {
   res.json(buildOpenApiDocument());
@@ -1580,14 +1546,6 @@ app.get(`/api/${API_VERSION}/taxonomy`, async (req, res, next) => {
   }
 });
 
-app.post(`/api/${API_VERSION}/rebuild`, requireApiWriteToken, async (_req, res, next) => {
-  try {
-    const result = await buildSite();
-    res.json({ ok: true, build: result });
-  } catch (error) {
-    next(error);
-  }
-});
 
 app.use('/assets', express.static(assetsDir));
 app.use('/content/posts', express.static(contentPostsDir));
