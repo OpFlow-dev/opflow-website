@@ -56,7 +56,7 @@ tar -C "$ROOT_DIR" -czf "$ARCHIVE_TAR_GZ" \
   --exclude='./.admin.pid' \
   .
 
-# Encrypt with password = YYYYMMDD (Asia/Shanghai).
+# Encrypt with daily rotation password (kept private).
 openssl enc -aes-256-cbc -salt -pbkdf2 -iter 200000 \
   -in "$ARCHIVE_TAR_GZ" \
   -out "$ARCHIVE_ENC" \
@@ -67,7 +67,7 @@ cat > "$NOTES_FILE" <<EOF
 Automated daily full backup.
 
 - Generated at: ${DATE_HUMAN}
-- Password: YYYYMMDD (Asia/Shanghai date)
+- Password: delivered via secure private channel
 - Package: ${ASSET_NAME}
 - Includes: website code + local content/data snapshot
 - Excludes: .git, node_modules, venv/cache, transient logs
@@ -116,7 +116,6 @@ jq -n \
   --arg tag "$TAG" \
   --arg releaseAction "$RELEASE_ACTION" \
   --arg asset "$ASSET_NAME" \
-  --arg password "$PASSWORD" \
   --argjson deletedOldReleases "${#DELETED_TAGS[@]}" \
   --argjson deletedTags "$DELETED_TAGS_JSON" \
   '{
@@ -124,7 +123,6 @@ jq -n \
     tag: $tag,
     releaseAction: $releaseAction,
     asset: $asset,
-    password: $password,
     deletedOldReleases: $deletedOldReleases,
     deletedTags: $deletedTags
   }'

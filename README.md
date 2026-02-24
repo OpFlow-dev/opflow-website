@@ -190,7 +190,7 @@ What it does:
 
 - Creates a full-site snapshot (code + local data) from the project working tree
 - Compresses it as `tar.gz`, then encrypts with AES-256 (`openssl`)
-- Uses `YYYYMMDD` (Asia/Shanghai) as password (e.g., `20260223`)
+- Encrypts backup artifact with a daily-rotated password (distributed via private channel)
 - Publishes/updates GitHub release tag `backup-YYYYMMDD` and uploads asset
 - Deletes old `backup-*` releases older than 30 days (`--cleanup-tag`)
 

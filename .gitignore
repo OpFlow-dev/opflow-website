@@ -3,6 +3,7 @@
 .server.pid
 .admin.log
 .admin.pid
+/logs/
 
 # Local content data (not versioned)
 /content/api-tokens.json
