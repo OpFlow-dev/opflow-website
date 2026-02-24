@@ -7,7 +7,7 @@ Static website structure clone for engineering practice and delivery workflow ha
 - Purpose: maintain a static site that mirrors information architecture and interaction behavior for testing and deployment rehearsal.
 - Constraint: this repository is **structure clone only**. Do not copy proprietary or copyrighted source content from external sites.
 - Constraint: keep visible site content stable unless a change request explicitly asks for content updates.
-- Mechanism: all post source content is Markdown-only (`content/posts/*.md`); public HTML is generated from Markdown and should not be edited manually.
+- Mechanism: all post source content is Markdown-only (`content/posts/*.md`, local data, not versioned in Git); public HTML is generated from Markdown and should not be edited manually.
 
 ## Directory Tree
 
@@ -22,7 +22,7 @@ Static website structure clone for engineering practice and delivery workflow ha
 │   ├── post-renderer.js
 │   └── style.css
 ├── content/
-│   └── posts/*.md            # source of truth
+│   └── posts/*.md            # local source of truth (gitignored)
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   ├── DEVELOPMENT.md
@@ -87,7 +87,7 @@ npm run serve:random
 
 ## Markdown-only Post Pipeline
 
-- Edit posts only in `content/posts/*.md`.
+- Edit posts only in `content/posts/*.md` (local data; not committed).
 - Frontmatter fields: `slug`, `title`, `date`, `status`, `category`, `tags`, `summary`.
 - `npm run build:site` generates page shells (`posts/*`, `index`, `list`, `categories`, `tags`).
 - Post **正文 Markdown 在用户浏览器中渲染**（`assets/post-renderer.js` + `markdown-it`）。
@@ -118,7 +118,7 @@ Then open `http://127.0.0.1:59051/admin`.
 
 Admin API/UI behavior:
 
-- Uses `content/posts/*.md` as source of truth (Markdown-only body content).
+- Uses `content/posts/*.md` as source of truth (Markdown-only body content, local-only data).
 - Post frontmatter supports `status: "published" | "draft"`; missing status defaults to `published`.
 - Static generation (`posts/*`, homepage/list/categories/tags, numeric aliases) includes only `published` posts.
 - Create/edit/delete operations rewrite markdown and rebuild static pages.

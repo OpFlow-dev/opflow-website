@@ -3,7 +3,13 @@
 .server.pid
 .admin.log
 .admin.pid
+
+# Local content data (not versioned)
 /content/api-tokens.json
+/content/categories.json
+/content/posts/*
+!/content/posts/.gitkeep
+/assets/uploads/
 
 # Python
 .venv/
