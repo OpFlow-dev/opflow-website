@@ -182,6 +182,25 @@ Security note:
 - Change `ADMIN_PASSWORD` before exposing the service anywhere.
 - Never commit or share plaintext API tokens.
 
+## Automated encrypted backup release
+
+Script: `scripts/daily_release_backup.sh`
+
+What it does:
+
+- Creates a full-site snapshot (code + local data) from the project working tree
+- Compresses it as `tar.gz`, then encrypts with AES-256 (`openssl`)
+- Uses `YYYYMMDD` (Asia/Shanghai) as password (e.g., `20260223`)
+- Publishes/updates GitHub release tag `backup-YYYYMMDD` and uploads asset
+- Deletes old `backup-*` releases older than 30 days (`--cleanup-tag`)
+
+Manual run:
+
+```bash
+cd /home/ubuntu/.openclaw/workspace-liuyun/projects/opflow-website
+./scripts/daily_release_backup.sh
+```
+
 ## CI
 
 GitHub Actions workflow: `.github/workflows/ci.yml`.
