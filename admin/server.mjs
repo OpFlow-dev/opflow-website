@@ -1319,6 +1319,41 @@ app.delete('/admin/api/posts/:slug', requireAuth, async (req, res, next) => {
   }
 });
 
+app.get('/admin/api/tags', requireAuth, async (_req, res, next) => {
+  try {
+    const posts = await loadPosts();
+    res.json({ tags: buildTagRows(posts) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/admin/api/tags/rename', requireAuth, async (req, res, next) => {
+  try {
+    const result = await renameTagAndBuild(req.body?.from, req.body?.to);
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    if (error && typeof error === 'object' && 'statusCode' in error) {
+      sendErrorWithStatus(res, error);
+      return;
+    }
+    next(error);
+  }
+});
+
+app.delete('/admin/api/tags/:name', requireAuth, async (req, res, next) => {
+  try {
+    const result = await deleteTagAndBuild(decodeURIComponent(req.params.name));
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    if (error && typeof error === 'object' && 'statusCode' in error) {
+      sendErrorWithStatus(res, error);
+      return;
+    }
+    next(error);
+  }
+});
+
 app.get('/admin/api/taxonomy', requireAuth, async (_req, res, next) => {
   try {
     const posts = await loadPosts();

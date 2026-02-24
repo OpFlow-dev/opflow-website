@@ -19,11 +19,13 @@ const EMPTY_FORM = {
 const state = {
   posts: [],
   categories: [],
+  tags: [],
   agentTokens: [],
   filtered: [],
   selectedSlug: null,
   selectedSlugs: new Set(),
   collapsedCategories: new Set(),
+  activeTab: 'posts',
 };
 
 const md = window.markdownit({
@@ -50,6 +52,9 @@ const md = window.markdownit({
 const elements = {
   loginPanel: document.getElementById('login-panel'),
   workspace: document.getElementById('workspace'),
+  tabNav: document.getElementById('tab-nav'),
+  tabButtons: [...document.querySelectorAll('.tab-btn')],
+  tabPanels: [...document.querySelectorAll('[data-tab-panel]')],
   loginForm: document.getElementById('login-form'),
   password: document.getElementById('password'),
   postTree: document.getElementById('post-tree'),
@@ -66,6 +71,12 @@ const elements = {
   categoryCreateBtn: document.getElementById('category-create-btn'),
   categoryDeleteSelect: document.getElementById('category-delete-select'),
   categoryDeleteBtn: document.getElementById('category-delete-btn'),
+  tagRenameFrom: document.getElementById('tag-rename-from'),
+  tagRenameTo: document.getElementById('tag-rename-to'),
+  tagRenameBtn: document.getElementById('tag-rename-btn'),
+  tagDeleteSelect: document.getElementById('tag-delete-select'),
+  tagDeleteBtn: document.getElementById('tag-delete-btn'),
+  tagList: document.getElementById('tag-list'),
   tokenNameInput: document.getElementById('token-name-input'),
   tokenCreateBtn: document.getElementById('token-create-btn'),
   tokenList: document.getElementById('token-list'),
@@ -103,6 +114,21 @@ function escapeHtml(value) {
 function setStatus(message, isError = false) {
   elements.status.textContent = message;
   elements.status.style.color = isError ? '#b42318' : '#334155';
+}
+
+function switchTab(tab) {
+  if (!tab) return;
+  state.activeTab = tab;
+
+  for (const button of elements.tabButtons) {
+    const active = button.dataset.tab === tab;
+    button.classList.toggle('is-active', active);
+    button.setAttribute('aria-selected', active ? 'true' : 'false');
+  }
+
+  for (const panel of elements.tabPanels) {
+    panel.classList.toggle('is-active', panel.dataset.tabPanel === tab);
+  }
 }
 
 function updateSelectedCount() {
@@ -165,6 +191,30 @@ function renderCategoryControls() {
     elements.categoryDeleteSelect.value = deleteOptions[1].value;
   }
   elements.categoryDeleteBtn.disabled = deletable.length === 0;
+}
+
+function renderTagControls() {
+  const currentDeleteTag = elements.tagDeleteSelect.value;
+  const options = [
+    { value: '', label: '选择要删除的标签', disabled: true },
+    ...state.tags.map((item) => ({ value: item.name, label: `${item.name}（${item.count}）` })),
+  ];
+
+  renderCategorySelectOptions(elements.tagDeleteSelect, options, currentDeleteTag);
+  if (!elements.tagDeleteSelect.value && options[1]) {
+    elements.tagDeleteSelect.value = options[1].value;
+  }
+
+  elements.tagDeleteBtn.disabled = state.tags.length === 0;
+
+  if (!state.tags.length) {
+    elements.tagList.innerHTML = '<li class="tag-empty">暂无标签</li>';
+    return;
+  }
+
+  elements.tagList.innerHTML = state.tags
+    .map((item) => `<li class="tag-item"><span class="tag-name">${escapeHtml(item.name)}</span><span class="tag-count">${item.count} 篇</span></li>`)
+    .join('');
 }
 
 function formatDateTime(value) {
@@ -293,6 +343,23 @@ async function loadCategories() {
     .sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'));
 
   renderCategoryControls();
+}
+
+async function loadTags() {
+  const payload = await api('/tags');
+  state.tags = (payload.tags || [])
+    .map((item) => ({
+      name: String(item.name || '').trim(),
+      count: Number(item.count) || 0,
+    }))
+    .filter((item) => item.name)
+    .sort((a, b) => {
+      const byCount = b.count - a.count;
+      if (byCount !== 0) return byCount;
+      return a.name.localeCompare(b.name, 'zh-Hans-CN');
+    });
+
+  renderTagControls();
 }
 
 function readForm() {
@@ -457,7 +524,7 @@ async function loadPosts(selectSlug = null) {
 }
 
 async function refreshData(selectSlug = null) {
-  await Promise.all([loadCategories(), loadAgentTokens()]);
+  await Promise.all([loadCategories(), loadTags(), loadAgentTokens()]);
   await loadPosts(selectSlug);
 }
 
@@ -478,11 +545,14 @@ async function checkSession() {
   if (me.authenticated) {
     elements.loginPanel.classList.add('hidden');
     elements.workspace.classList.remove('hidden');
+    switchTab(state.activeTab || 'posts');
     await refreshData();
   } else {
     elements.loginPanel.classList.remove('hidden');
     elements.workspace.classList.add('hidden');
+    state.tags = [];
     state.agentTokens = [];
+    renderTagControls();
     renderTokenList();
     hideTokenPreview();
     writeForm(null);
@@ -688,6 +758,47 @@ async function deleteCategory() {
   await refreshData(state.selectedSlug);
 }
 
+async function renameTag() {
+  const from = elements.tagRenameFrom.value.trim();
+  const to = elements.tagRenameTo.value.trim();
+
+  if (!from || !to) {
+    setStatus('请先填写原标签和新标签', true);
+    return;
+  }
+
+  await api('/tags/rename', {
+    method: 'POST',
+    body: JSON.stringify({ from, to }),
+  });
+
+  elements.tagRenameFrom.value = '';
+  elements.tagRenameTo.value = '';
+  setStatus(`标签已重命名：${from} → ${to}`);
+  await refreshData(state.selectedSlug);
+}
+
+async function deleteTag() {
+  const name = elements.tagDeleteSelect.value;
+  if (!name) {
+    setStatus('请先选择要删除的标签', true);
+    return;
+  }
+
+  const meta = state.tags.find((item) => item.name === name);
+  const count = meta?.count || 0;
+  const ok = window.confirm(`确认删除标签“${name}”吗？将影响 ${count} 篇文章。`);
+  if (!ok) return;
+
+  await api(`/tags/${encodeURIComponent(name)}`, {
+    method: 'DELETE',
+    body: JSON.stringify({}),
+  });
+
+  setStatus(`标签“${name}”已删除`);
+  await refreshData(state.selectedSlug);
+}
+
 elements.loginForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   try {
@@ -701,6 +812,12 @@ elements.loginForm.addEventListener('submit', async (event) => {
   } catch (error) {
     setStatus(error.message, true);
   }
+});
+
+elements.tabNav.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-tab]');
+  if (!button) return;
+  switchTab(button.dataset.tab);
 });
 
 elements.search.addEventListener('input', renderTree);
@@ -762,6 +879,7 @@ elements.postTree.addEventListener('change', (event) => {
 });
 
 elements.newBtn.addEventListener('click', () => {
+  switchTab('posts');
   state.selectedSlug = null;
   writeForm(null);
   renderTree();
@@ -867,6 +985,20 @@ elements.categoryDeleteBtn.addEventListener('click', () => {
   deleteCategory().catch((error) => setStatus(error.message, true));
 });
 
+elements.tagRenameBtn.addEventListener('click', () => {
+  renameTag().catch((error) => setStatus(error.message, true));
+});
+
+elements.tagRenameTo.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  renameTag().catch((error) => setStatus(error.message, true));
+});
+
+elements.tagDeleteBtn.addEventListener('click', () => {
+  deleteTag().catch((error) => setStatus(error.message, true));
+});
+
 elements.tokenCreateBtn.addEventListener('click', () => {
   createAgentToken().catch((error) => setStatus(error.message, true));
 });
@@ -908,6 +1040,8 @@ elements.imageUploadInput.addEventListener('change', async () => {
   }
 });
 
+switchTab('posts');
+renderTagControls();
 renderTokenList();
 hideTokenPreview();
 checkSession().catch((error) => setStatus(error.message, true));

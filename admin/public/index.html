@@ -20,8 +20,7 @@
         <h1>Opflow 后台</h1>
       </div>
       <div class="header-actions">
-        <button id="rebuild-btn" class="btn">重建站点</button>
-        <button id="new-btn" class="btn">新建文章</button>
+        <a href="https://opflow.cc/api/docs" target="_blank" rel="noopener" class="btn btn-ghost">API 文档</a>
         <button id="logout-btn" class="btn btn-ghost">退出登录</button>
       </div>
     </header>
@@ -37,118 +36,172 @@
     </section>
 
     <section id="workspace" class="workspace hidden">
-      <aside class="panel list-panel">
-        <div class="list-head">
-          <h2>文章目录</h2>
-          <input id="search" type="search" placeholder="搜索标题 / Slug / 分类">
-        </div>
+      <div id="tab-nav" class="tab-nav" role="tablist" aria-label="后台功能标签页">
+        <button type="button" class="tab-btn is-active" data-tab="posts" role="tab" aria-selected="true">文章编辑</button>
+        <button type="button" class="tab-btn" data-tab="taxonomy" role="tab" aria-selected="false">分类标签</button>
+        <button type="button" class="tab-btn" data-tab="auth" role="tab" aria-selected="false">权限管理</button>
+        <button type="button" class="tab-btn" data-tab="system" role="tab" aria-selected="false">系统操作</button>
+      </div>
 
-        <div class="batch-panel">
-          <p id="selected-count" class="selected-count">已选 0 篇</p>
-          <div class="batch-row">
-            <select id="bulk-category"></select>
-            <button id="bulk-category-btn" type="button" class="btn btn-light">改分类</button>
-          </div>
-          <div class="batch-row">
-            <select id="bulk-status">
-              <option value="published">发布</option>
-              <option value="draft">草稿</option>
-            </select>
-            <button id="bulk-status-btn" type="button" class="btn btn-light">改状态</button>
-          </div>
-          <button id="bulk-delete-btn" type="button" class="btn btn-danger btn-block">批量删除</button>
-        </div>
-
-        <div class="category-manager">
-          <h3>分类管理</h3>
-          <div class="batch-row">
-            <input id="category-create-input" type="text" placeholder="输入新分类名">
-            <button id="category-create-btn" type="button" class="btn btn-light">创建分类</button>
-          </div>
-          <div class="batch-row">
-            <select id="category-delete-select"></select>
-            <button id="category-delete-btn" type="button" class="btn btn-danger">删除分类</button>
-          </div>
-        </div>
-
-        <div class="token-manager">
-          <h3>API Token 管理</h3>
-          <div class="batch-row">
-            <input id="token-name-input" type="text" placeholder="例如：Agent Runner">
-            <button id="token-create-btn" type="button" class="btn btn-light">创建 Token</button>
-          </div>
-          <p class="token-tip">写入类 API 必须携带 Bearer Token。新建后仅显示一次，请立即保存。</p>
-          <div id="token-created-panel" class="token-created hidden">
-            <p class="token-created-title">新 Token（仅显示一次）</p>
-            <textarea id="token-plain-output" rows="3" readonly></textarea>
-            <button id="token-copy-btn" type="button" class="btn btn-primary btn-block">复制 Token</button>
-          </div>
-          <ul id="token-list" class="token-list"></ul>
-        </div>
-
-        <ul id="post-tree" class="post-tree"></ul>
-      </aside>
-
-      <section class="panel editor-panel">
-        <form id="editor-form" class="editor-grid">
-          <label>Slug<input id="slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="例如：my-first-post"></label>
-          <label>标题<input id="title" required placeholder="输入文章标题"></label>
-          <label>日期<input id="date" required placeholder="YYYY-MM-DD" pattern="\d{4}-\d{2}-\d{2}"></label>
-          <label>状态
-            <select id="status-field">
-              <option value="published">发布</option>
-              <option value="draft">草稿</option>
-            </select>
-          </label>
-          <label>分类
-            <select id="category" required></select>
-          </label>
-          <label>标签（逗号分隔）<input id="tags" placeholder="前端, 架构, 性能"></label>
-          <label class="full">摘要<textarea id="summary" rows="3" required placeholder="简要描述文章内容"></textarea></label>
-          <label class="full">Markdown 正文
-            <div class="toolbar" role="toolbar" aria-label="Markdown 工具栏">
-              <button type="button" class="btn btn-tool" data-tool="h2" title="二级标题" aria-label="二级标题">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h2v5h6V6h2v12h-2v-5H6v5H4V6zm12 4h4l-2 3h2l-2 3h-2l2-3h-2l2-3z"/></svg>
-              </button>
-              <button type="button" class="btn btn-tool" data-tool="bold" title="加粗" aria-label="加粗">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h6a4 4 0 0 1 0 8H7V5zm0 8h7a4 4 0 0 1 0 8H7v-8zm2-6v4h4a2 2 0 1 0 0-4H9zm0 8v4h5a2 2 0 1 0 0-4H9z"/></svg>
-              </button>
-              <button type="button" class="btn btn-tool" data-tool="italic" title="斜体" aria-label="斜体">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5v2h2.21l-3.42 10H6v2h8v-2h-2.21l3.42-10H18V5h-8z"/></svg>
-              </button>
-              <button type="button" class="btn btn-tool" data-tool="code" title="行内代码" aria-label="行内代码">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8.7 16.7-1.4 1.4L2.2 13l5.1-5.1 1.4 1.4L5.1 13l3.6 3.7zm6.6 0 3.6-3.7-3.6-3.6 1.4-1.4 5.1 5.1-5.1 5.1-1.4-1.4zM13.1 4l-3.2 16H8l3.2-16h1.9z"/></svg>
-              </button>
-              <button type="button" class="btn btn-tool" data-tool="link" title="插入链接" aria-label="插入链接">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.9 12a5 5 0 0 1 5-5h3v2h-3a3 3 0 1 0 0 6h3v2h-3a5 5 0 0 1-5-5zm6-1h4v2h-4v-2zm5.2-4h3a5 5 0 1 1 0 10h-3v-2h3a3 3 0 1 0 0-6h-3V7z"/></svg>
-              </button>
-              <button type="button" class="btn btn-tool" data-tool="quote" title="引用" aria-label="引用">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h6v6H7v6H5V6zm8 0h6v6h-4v6h-2V6z"/></svg>
-              </button>
-              <button type="button" class="btn btn-tool" data-tool="ul" title="无序列表" aria-label="无序列表">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h2v2H4V7zm0 4h2v2H4v-2zm0 4h2v2H4v-2zM8 7h12v2H8V7zm0 4h12v2H8v-2zm0 4h12v2H8v-2z"/></svg>
-              </button>
-              <button type="button" class="btn btn-tool" data-tool="code-block" title="代码块" aria-label="代码块">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8.6 7.4-4.6 4.6 4.6 4.6L7.2 18 1.2 12l6-6 1.4 1.4zm6.8 0L16.8 6l6 6-6 6-1.4-1.4 4.6-4.6-4.6-4.6z"/></svg>
-              </button>
-              <button type="button" class="btn btn-tool" data-tool="image-upload" title="上传图片" aria-label="上传图片">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 5h-3.2L14 3H10L8.2 5H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm-7 3a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
-              </button>
+      <section class="tab-pane is-active" data-tab-panel="posts">
+        <div class="workspace-posts">
+          <aside class="panel list-panel">
+            <div class="list-head">
+              <div class="list-head-row">
+                <h2>文章目录</h2>
+                <button id="new-btn" type="button" class="btn btn-light">新建文章</button>
+              </div>
+              <input id="search" type="search" placeholder="搜索标题 / Slug / 分类">
             </div>
-            <textarea id="content" rows="28" required placeholder="在这里编辑 Markdown 内容..."></textarea>
-          </label>
-          <input id="image-upload-input" type="file" accept="image/*" class="hidden">
-          <div class="editor-actions full">
-            <button type="submit" class="btn btn-primary">保存文章</button>
-            <button type="button" id="delete-btn" class="btn btn-danger">删除当前文章</button>
-          </div>
-        </form>
+
+            <div class="batch-panel">
+              <p id="selected-count" class="selected-count">已选 0 篇</p>
+              <div class="batch-row">
+                <select id="bulk-category"></select>
+                <button id="bulk-category-btn" type="button" class="btn btn-light">改分类</button>
+              </div>
+              <div class="batch-row">
+                <select id="bulk-status">
+                  <option value="published">发布</option>
+                  <option value="draft">草稿</option>
+                </select>
+                <button id="bulk-status-btn" type="button" class="btn btn-light">改状态</button>
+              </div>
+              <button id="bulk-delete-btn" type="button" class="btn btn-danger btn-block">批量删除</button>
+            </div>
+
+            <ul id="post-tree" class="post-tree"></ul>
+          </aside>
+
+          <section class="panel editor-panel">
+            <form id="editor-form" class="editor-grid">
+              <label>Slug<input id="slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="例如：my-first-post"></label>
+              <label>标题<input id="title" required placeholder="输入文章标题"></label>
+              <label>日期<input id="date" required placeholder="YYYY-MM-DD" pattern="\d{4}-\d{2}-\d{2}"></label>
+              <label>状态
+                <select id="status-field">
+                  <option value="published">发布</option>
+                  <option value="draft">草稿</option>
+                </select>
+              </label>
+              <label>分类
+                <select id="category" required></select>
+              </label>
+              <label>标签（逗号分隔）<input id="tags" placeholder="前端, 架构, 性能"></label>
+              <label class="full">摘要<textarea id="summary" rows="3" required placeholder="简要描述文章内容"></textarea></label>
+              <label class="full">Markdown 正文
+                <div class="toolbar" role="toolbar" aria-label="Markdown 工具栏">
+                  <button type="button" class="btn btn-tool" data-tool="h2" title="二级标题" aria-label="二级标题">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h2v5h6V6h2v12h-2v-5H6v5H4V6zm12 4h4l-2 3h2l-2 3h-2l2-3h-2l2-3z"/></svg>
+                  </button>
+                  <button type="button" class="btn btn-tool" data-tool="bold" title="加粗" aria-label="加粗">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h6a4 4 0 0 1 0 8H7V5zm0 8h7a4 4 0 0 1 0 8H7v-8zm2-6v4h4a2 2 0 1 0 0-4H9zm0 8v4h5a2 2 0 1 0 0-4H9z"/></svg>
+                  </button>
+                  <button type="button" class="btn btn-tool" data-tool="italic" title="斜体" aria-label="斜体">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5v2h2.21l-3.42 10H6v2h8v-2h-2.21l3.42-10H18V5h-8z"/></svg>
+                  </button>
+                  <button type="button" class="btn btn-tool" data-tool="code" title="行内代码" aria-label="行内代码">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8.7 16.7-1.4 1.4L2.2 13l5.1-5.1 1.4 1.4L5.1 13l3.6 3.7zm6.6 0 3.6-3.7-3.6-3.6 1.4-1.4 5.1 5.1-5.1 5.1-1.4-1.4zM13.1 4l-3.2 16H8l3.2-16h1.9z"/></svg>
+                  </button>
+                  <button type="button" class="btn btn-tool" data-tool="link" title="插入链接" aria-label="插入链接">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.9 12a5 5 0 0 1 5-5h3v2h-3a3 3 0 1 0 0 6h3v2h-3a5 5 0 0 1-5-5zm6-1h4v2h-4v-2zm5.2-4h3a5 5 0 1 1 0 10h-3v-2h3a3 3 0 1 0 0-6h-3V7z"/></svg>
+                  </button>
+                  <button type="button" class="btn btn-tool" data-tool="quote" title="引用" aria-label="引用">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h6v6H7v6H5V6zm8 0h6v6h-4v6h-2V6z"/></svg>
+                  </button>
+                  <button type="button" class="btn btn-tool" data-tool="ul" title="无序列表" aria-label="无序列表">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h2v2H4V7zm0 4h2v2H4v-2zm0 4h2v2H4v-2zM8 7h12v2H8V7zm0 4h12v2H8v-2zm0 4h12v2H8v-2z"/></svg>
+                  </button>
+                  <button type="button" class="btn btn-tool" data-tool="code-block" title="代码块" aria-label="代码块">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8.6 7.4-4.6 4.6 4.6 4.6L7.2 18 1.2 12l6-6 1.4 1.4zm6.8 0L16.8 6l6 6-6 6-1.4-1.4 4.6-4.6-4.6-4.6z"/></svg>
+                  </button>
+                  <button type="button" class="btn btn-tool" data-tool="image-upload" title="上传图片" aria-label="上传图片">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 5h-3.2L14 3H10L8.2 5H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm-7 3a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
+                  </button>
+                </div>
+                <textarea id="content" rows="28" required placeholder="在这里编辑 Markdown 内容..."></textarea>
+              </label>
+              <input id="image-upload-input" type="file" accept="image/*" class="hidden">
+              <div class="editor-actions full">
+                <button type="submit" class="btn btn-primary">保存文章</button>
+                <button type="button" id="delete-btn" class="btn btn-danger">删除当前文章</button>
+              </div>
+            </form>
+          </section>
+
+          <aside class="panel preview-panel">
+            <h2>实时预览</h2>
+            <article id="preview" class="preview"></article>
+          </aside>
+        </div>
       </section>
 
-      <aside class="panel preview-panel">
-        <h2>实时预览</h2>
-        <article id="preview" class="preview"></article>
-      </aside>
+      <section class="tab-pane" data-tab-panel="taxonomy">
+        <div class="workspace-settings">
+          <section class="panel settings-panel">
+            <h2>分类管理</h2>
+            <div class="category-manager">
+              <div class="batch-row">
+                <input id="category-create-input" type="text" placeholder="输入新分类名">
+                <button id="category-create-btn" type="button" class="btn btn-light">创建分类</button>
+              </div>
+              <div class="batch-row">
+                <select id="category-delete-select"></select>
+                <button id="category-delete-btn" type="button" class="btn btn-danger">删除分类</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel settings-panel">
+            <h2>标签管理</h2>
+            <div class="tag-manager">
+              <div class="dual-input-row">
+                <input id="tag-rename-from" type="text" placeholder="原标签名">
+                <input id="tag-rename-to" type="text" placeholder="新标签名">
+              </div>
+              <button id="tag-rename-btn" type="button" class="btn btn-light">重命名标签</button>
+              <div class="batch-row">
+                <select id="tag-delete-select"></select>
+                <button id="tag-delete-btn" type="button" class="btn btn-danger">删除标签</button>
+              </div>
+              <ul id="tag-list" class="tag-list"></ul>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="tab-pane" data-tab-panel="auth">
+        <div class="workspace-settings single-column">
+          <section class="panel settings-panel">
+            <h2>API Token 管理</h2>
+            <div class="token-manager">
+              <div class="batch-row">
+                <input id="token-name-input" type="text" placeholder="例如：Agent Runner">
+                <button id="token-create-btn" type="button" class="btn btn-light">创建 Token</button>
+              </div>
+              <p class="token-tip">写入类 API 必须携带 Bearer Token。新建后仅显示一次，请立即保存。</p>
+              <div id="token-created-panel" class="token-created hidden">
+                <p class="token-created-title">新 Token（仅显示一次）</p>
+                <textarea id="token-plain-output" rows="3" readonly></textarea>
+                <button id="token-copy-btn" type="button" class="btn btn-primary btn-block">复制 Token</button>
+              </div>
+              <ul id="token-list" class="token-list"></ul>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="tab-pane" data-tab-panel="system">
+        <div class="workspace-settings single-column">
+          <section class="panel settings-panel">
+            <h2>系统操作</h2>
+            <div class="system-actions">
+              <button id="rebuild-btn" type="button" class="btn btn-primary">重建站点</button>
+              <p class="token-tip">可通过 Swagger 页面调试外部 Agent API：<a href="https://opflow.cc/api/docs" target="_blank" rel="noopener">https://opflow.cc/api/docs</a></p>
+            </div>
+          </section>
+        </div>
+      </section>
     </section>
 
     <p id="status" class="status" role="status"></p>
