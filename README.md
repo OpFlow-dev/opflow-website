@@ -137,6 +137,9 @@ Admin API/UI behavior:
 
 ### External Agent API (`/api/v1`)
 
+- Swagger 页面：`/api/docs`
+- OpenAPI 文档：`/api/v1/openapi.json`
+
 Read operations are public, write operations require token.
 
 - Read endpoints:

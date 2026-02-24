@@ -34,6 +34,546 @@ const apiTokenStorePath = path.join(ROOT_DIR, 'content', 'api-tokens.json');
 const uploadDir = path.join(assetsDir, 'uploads');
 const DEFAULT_CATEGORY = '未分类';
 const API_VERSION = 'v1';
+const OPENAPI_PATH = `/api/${API_VERSION}/openapi.json`;
+const SWAGGER_PAGE_PATH = '/api/docs';
+
+function buildOpenApiDocument() {
+  return {
+    openapi: '3.0.3',
+    info: {
+      title: 'Opflow Agent API',
+      version: '1.0.0',
+      description: '用于 Agent 查询与管理博客内容的 API。读接口开放，写接口需 Bearer Token。',
+    },
+    servers: [{ url: '/' }],
+    tags: [
+      { name: 'health', description: '服务状态' },
+      { name: 'posts', description: '文章查询与 CRUD' },
+      { name: 'categories', description: '分类查询与管理' },
+      { name: 'tags', description: '标签查询与管理' },
+      { name: 'taxonomy', description: '分类标签统计' },
+      { name: 'build', description: '站点重建' },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'Token',
+          description: '在后台「API Token 管理」中创建。',
+        },
+      },
+      schemas: {
+        ErrorResponse: {
+          type: 'object',
+          required: ['error'],
+          properties: {
+            error: { type: 'string' },
+          },
+        },
+        BuildResult: {
+          type: 'object',
+          required: ['postCount'],
+          properties: {
+            postCount: { type: 'integer', minimum: 0 },
+          },
+        },
+        PostResource: {
+          type: 'object',
+          required: ['slug', 'title', 'date', 'status', 'category', 'tags', 'summary'],
+          properties: {
+            slug: { type: 'string', pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$' },
+            title: { type: 'string' },
+            date: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
+            status: { type: 'string', enum: ['published', 'draft'] },
+            category: { type: 'string' },
+            tags: {
+              type: 'array',
+              items: { type: 'string' },
+            },
+            summary: { type: 'string' },
+            content: { type: 'string', description: '当 includeContent=1 或单篇查询时返回' },
+          },
+        },
+        PostInput: {
+          type: 'object',
+          required: ['slug', 'title', 'date', 'status', 'category', 'tags', 'summary', 'content'],
+          properties: {
+            slug: { type: 'string', pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$' },
+            title: { type: 'string' },
+            date: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
+            status: { type: 'string', enum: ['published', 'draft'] },
+            category: { type: 'string' },
+            tags: { type: 'array', items: { type: 'string' } },
+            summary: { type: 'string' },
+            content: { type: 'string' },
+          },
+        },
+        CategoryRow: {
+          type: 'object',
+          required: ['name', 'count'],
+          properties: {
+            name: { type: 'string' },
+            count: { type: 'integer', minimum: 0 },
+          },
+        },
+        TagRow: {
+          type: 'object',
+          required: ['name', 'count'],
+          properties: {
+            name: { type: 'string' },
+            count: { type: 'integer', minimum: 0 },
+          },
+        },
+        TaxonomyResponse: {
+          type: 'object',
+          required: ['categories', 'tags', 'status'],
+          properties: {
+            status: { type: 'string', enum: ['all', 'published', 'draft'] },
+            categories: { type: 'object', additionalProperties: { type: 'integer', minimum: 0 } },
+            tags: { type: 'object', additionalProperties: { type: 'integer', minimum: 0 } },
+          },
+        },
+      },
+    },
+    paths: {
+      '/api/v1/health': {
+        get: {
+          tags: ['health'],
+          summary: '健康检查',
+          responses: {
+            200: {
+              description: 'OK',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    required: ['ok', 'version'],
+                    properties: {
+                      ok: { type: 'boolean' },
+                      version: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/v1/posts': {
+        get: {
+          tags: ['posts'],
+          summary: '查询文章列表',
+          parameters: [
+            { name: 'status', in: 'query', schema: { type: 'string', enum: ['published', 'draft', 'all'] } },
+            { name: 'includeContent', in: 'query', schema: { type: 'string', enum: ['1', 'true', 'yes'] } },
+            { name: 'q', in: 'query', schema: { type: 'string' } },
+          ],
+          responses: {
+            200: {
+              description: '文章列表',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    required: ['posts', 'total', 'status'],
+                    properties: {
+                      status: { type: 'string' },
+                      total: { type: 'integer', minimum: 0 },
+                      posts: { type: 'array', items: { $ref: '#/components/schemas/PostResource' } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        post: {
+          tags: ['posts'],
+          summary: '创建文章',
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/PostInput' },
+              },
+            },
+          },
+          responses: {
+            201: {
+              description: '创建成功',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    required: ['ok', 'post', 'build'],
+                    properties: {
+                      ok: { type: 'boolean' },
+                      post: { $ref: '#/components/schemas/PostResource' },
+                      build: { $ref: '#/components/schemas/BuildResult' },
+                    },
+                  },
+                },
+              },
+            },
+            401: { description: '未授权', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+            409: { description: '冲突', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          },
+        },
+      },
+      '/api/v1/posts/{slug}': {
+        get: {
+          tags: ['posts'],
+          summary: '查询单篇文章',
+          parameters: [{ name: 'slug', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            200: {
+              description: '文章详情',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    required: ['post'],
+                    properties: {
+                      post: { $ref: '#/components/schemas/PostResource' },
+                    },
+                  },
+                },
+              },
+            },
+            404: { description: '未找到', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          },
+        },
+        put: {
+          tags: ['posts'],
+          summary: '更新文章',
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'slug', in: 'path', required: true, schema: { type: 'string' } }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/PostInput' },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: '更新成功',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    required: ['ok', 'post', 'build'],
+                    properties: {
+                      ok: { type: 'boolean' },
+                      post: { $ref: '#/components/schemas/PostResource' },
+                      build: { $ref: '#/components/schemas/BuildResult' },
+                    },
+                  },
+                },
+              },
+            },
+            401: { description: '未授权', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+            404: { description: '未找到', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+            409: { description: '冲突', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          },
+        },
+        delete: {
+          tags: ['posts'],
+          summary: '删除文章',
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'slug', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            200: {
+              description: '删除成功',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    required: ['ok', 'build'],
+                    properties: {
+                      ok: { type: 'boolean' },
+                      build: { $ref: '#/components/schemas/BuildResult' },
+                    },
+                  },
+                },
+              },
+            },
+            401: { description: '未授权', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+            404: { description: '未找到', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          },
+        },
+      },
+      '/api/v1/categories': {
+        get: {
+          tags: ['categories'],
+          summary: '查询分类列表',
+          parameters: [{ name: 'status', in: 'query', schema: { type: 'string', enum: ['published', 'draft', 'all'] } }],
+          responses: {
+            200: {
+              description: '分类统计',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    required: ['categories', 'status'],
+                    properties: {
+                      status: { type: 'string' },
+                      categories: { type: 'array', items: { $ref: '#/components/schemas/CategoryRow' } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        post: {
+          tags: ['categories'],
+          summary: '创建分类',
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['name'],
+                  properties: { name: { type: 'string' } },
+                },
+              },
+            },
+          },
+          responses: {
+            201: {
+              description: '创建成功',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    required: ['ok', 'category'],
+                    properties: {
+                      ok: { type: 'boolean' },
+                      category: { $ref: '#/components/schemas/CategoryRow' },
+                    },
+                  },
+                },
+              },
+            },
+            401: { description: '未授权', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+            409: { description: '冲突', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          },
+        },
+      },
+      '/api/v1/categories/{name}': {
+        delete: {
+          tags: ['categories'],
+          summary: '删除分类（可迁移文章）',
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'name', in: 'path', required: true, schema: { type: 'string' } }],
+          requestBody: {
+            required: false,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: { reassignTo: { type: 'string' } },
+                },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: '删除成功',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    required: ['ok', 'reassigned', 'reassignTo'],
+                    properties: {
+                      ok: { type: 'boolean' },
+                      reassigned: { type: 'integer', minimum: 0 },
+                      reassignTo: { type: ['string', 'null'] },
+                    },
+                  },
+                },
+              },
+            },
+            400: { description: '请求错误', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+            401: { description: '未授权', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+            404: { description: '未找到', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          },
+        },
+      },
+      '/api/v1/tags': {
+        get: {
+          tags: ['tags'],
+          summary: '查询标签列表',
+          parameters: [{ name: 'status', in: 'query', schema: { type: 'string', enum: ['published', 'draft', 'all'] } }],
+          responses: {
+            200: {
+              description: '标签统计',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    required: ['tags', 'status'],
+                    properties: {
+                      status: { type: 'string' },
+                      tags: { type: 'array', items: { $ref: '#/components/schemas/TagRow' } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/v1/tags/rename': {
+        post: {
+          tags: ['tags'],
+          summary: '重命名标签（批量改写文章）',
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['from', 'to'],
+                  properties: {
+                    from: { type: 'string' },
+                    to: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: '重命名完成',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    required: ['ok', 'updatedPosts', 'from', 'to'],
+                    properties: {
+                      ok: { type: 'boolean' },
+                      updatedPosts: { type: 'integer', minimum: 0 },
+                      from: { type: 'string' },
+                      to: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
+            401: { description: '未授权', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          },
+        },
+      },
+      '/api/v1/tags/{name}': {
+        delete: {
+          tags: ['tags'],
+          summary: '删除标签（批量移除）',
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'name', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            200: {
+              description: '删除完成',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    required: ['ok', 'removedTag', 'updatedPosts'],
+                    properties: {
+                      ok: { type: 'boolean' },
+                      removedTag: { type: 'string' },
+                      updatedPosts: { type: 'integer', minimum: 0 },
+                    },
+                  },
+                },
+              },
+            },
+            401: { description: '未授权', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          },
+        },
+      },
+      '/api/v1/taxonomy': {
+        get: {
+          tags: ['taxonomy'],
+          summary: '查询分类/标签统计',
+          parameters: [{ name: 'status', in: 'query', schema: { type: 'string', enum: ['published', 'draft', 'all'] } }],
+          responses: {
+            200: {
+              description: '统计信息',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/TaxonomyResponse' },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/v1/rebuild': {
+        post: {
+          tags: ['build'],
+          summary: '触发站点重建',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            200: {
+              description: '重建完成',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    required: ['ok', 'build'],
+                    properties: {
+                      ok: { type: 'boolean' },
+                      build: { $ref: '#/components/schemas/BuildResult' },
+                    },
+                  },
+                },
+              },
+            },
+            401: { description: '未授权', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          },
+        },
+      },
+    },
+  };
+}
+
+function renderSwaggerHtml() {
+  return `<!DOCTYPE html>
+<html lang="zh-cmn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Opflow Agent API Docs</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
+  <style>
+    body { margin: 0; background: #f7f8fa; }
+    .swagger-ui .topbar { display: none; }
+  </style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script>
+    window.ui = SwaggerUIBundle({
+      url: '${OPENAPI_PATH}',
+      dom_id: '#swagger-ui',
+      docExpansion: 'list',
+      persistAuthorization: true,
+      displayRequestDuration: true,
+      tryItOutEnabled: true
+    });
+  </script>
+</body>
+</html>`;
+}
 
 function normalizeCategoryName(value) {
   const name = String(value ?? '').trim();
@@ -802,6 +1342,14 @@ app.post('/admin/api/rebuild', requireAuth, async (_req, res, next) => {
   } catch (error) {
     next(error);
   }
+});
+
+app.get(OPENAPI_PATH, (_req, res) => {
+  res.json(buildOpenApiDocument());
+});
+
+app.get([SWAGGER_PAGE_PATH, `${SWAGGER_PAGE_PATH}/`], (_req, res) => {
+  res.type('html').send(renderSwaggerHtml());
 });
 
 app.get(`/api/${API_VERSION}/health`, (_req, res) => {
