@@ -62,26 +62,15 @@ openssl enc -aes-256-cbc -salt -pbkdf2 -iter 200000 \
   -out "$ARCHIVE_ENC" \
   -pass "pass:${PASSWORD}"
 
-NOTES_FILE="${TMP_DIR}/release-notes.md"
-cat > "$NOTES_FILE" <<EOF
-Automated daily full backup.
-
-- Generated at: ${DATE_HUMAN}
-- Password: delivered via secure private channel
-- Package: ${ASSET_NAME}
-- Includes: website code + local content/data snapshot
-- Excludes: .git, node_modules, venv/cache, transient logs
-EOF
-
 if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
   gh release upload "$TAG" "$ARCHIVE_ENC#${ASSET_NAME}" --clobber --repo "$REPO"
-  gh release edit "$TAG" --repo "$REPO" --title "$TITLE" --notes-file "$NOTES_FILE"
+  gh release edit "$TAG" --repo "$REPO" --title "$TITLE" --notes ""
   RELEASE_ACTION="updated"
 else
   gh release create "$TAG" "$ARCHIVE_ENC#${ASSET_NAME}" \
     --repo "$REPO" \
     --title "$TITLE" \
-    --notes-file "$NOTES_FILE"
+    --notes ""
   RELEASE_ACTION="created"
 fi
 
