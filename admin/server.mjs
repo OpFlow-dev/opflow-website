@@ -11,6 +11,7 @@ import {
   deletePostMarkdown,
   findPost,
   loadPosts,
+  markdownPathForSlug,
   normalizePostPayload,
   removePostOutput,
   writePost,
@@ -1555,6 +1556,94 @@ function isSafeSlug(slug) {
   return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(String(slug ?? ''));
 }
 
+function toPaddedSlug(slug) {
+  const match = String(slug ?? '').match(/^(.*-)(\d{1,2})$/);
+  if (!match) return null;
+  const [, prefix, digits] = match;
+  return `${prefix}${digits.padStart(3, '0')}`;
+}
+
+function toUnpaddedSlug(slug) {
+  const match = String(slug ?? '').match(/^(.*-)(0\d{2,})$/);
+  if (!match) return null;
+  const [, prefix, digits] = match;
+  const num = Number.parseInt(digits, 10);
+  if (!Number.isFinite(num)) return null;
+  return `${prefix}${num}`;
+}
+
+function mirrorFormatFromRequest(req, fallback = 'html') {
+  const fromQuery = String(req.query?.format ?? '').trim().toLowerCase();
+  if (fromQuery === 'raw' || fromQuery === 'md' || fromQuery === 'markdown') return 'md';
+  if (fromQuery === 'json') return 'json';
+  return fallback;
+}
+
+async function resolvePublishedPostBySlug(slugInput) {
+  const slug = String(slugInput ?? '').trim();
+  if (!isSafeSlug(slug)) return null;
+
+  const candidates = new Set([slug]);
+  const padded = toPaddedSlug(slug);
+  if (padded) candidates.add(padded);
+  const unpadded = toUnpaddedSlug(slug);
+  if (unpadded) candidates.add(unpadded);
+
+  const posts = await loadPosts();
+  for (const candidate of candidates) {
+    const post = findPost(posts, candidate);
+    if (post && post.status === 'published') {
+      return post;
+    }
+  }
+
+  return null;
+}
+
+async function sendPostMirror(req, res, slugInput, formatInput) {
+  const format = String(formatInput || 'html').toLowerCase();
+  const requestedSlug = String(slugInput ?? '').trim();
+  const post = await resolvePublishedPostBySlug(requestedSlug);
+
+  if (!post) {
+    res.status(404).send('Not found');
+    return;
+  }
+
+  if (format === 'md') {
+    try {
+      const markdown = await fs.readFile(markdownPathForSlug(post.slug), 'utf8');
+      res.type('text/markdown').send(markdown);
+      return;
+    } catch (error) {
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+        res.status(404).send('Not found');
+        return;
+      }
+      console.error('[sendPostMirror:md]', post.slug, error);
+      res.status(500).send('Internal server error');
+      return;
+    }
+  }
+
+  if (format === 'json') {
+    const canonicalSlug = post.slug;
+    const baseSlug = requestedSlug || canonicalSlug;
+    res.json({
+      post,
+      mirror: {
+        html: `/posts/${baseSlug}/`,
+        md: `/posts/${baseSlug}.md`,
+        json: `/posts/${baseSlug}.json`,
+        canonical: `/posts/${canonicalSlug}/`,
+      },
+    });
+    return;
+  }
+
+  await sendGeneratedHtml(res, path.join(ROOT_DIR, 'posts', requestedSlug, 'index.html'));
+}
+
 async function sendGeneratedHtml(res, filePath) {
   try {
     const html = await fs.readFile(filePath, 'utf8');
@@ -1593,12 +1682,35 @@ for (const section of ['list', 'categories', 'tags', 'about']) {
   });
 }
 
+app.get(['/posts/:slug.:ext', '/posts/:slug.:ext/'], async (req, res) => {
+  const { slug, ext } = req.params;
+  if (!isSafeSlug(slug)) {
+    res.status(404).send('Not found');
+    return;
+  }
+
+  const normalizedExt = String(ext || '').toLowerCase();
+  if (normalizedExt !== 'md' && normalizedExt !== 'json') {
+    res.status(404).send('Not found');
+    return;
+  }
+
+  await sendPostMirror(req, res, slug, normalizedExt);
+});
+
 app.get(['/posts/:slug', '/posts/:slug/'], async (req, res) => {
   const { slug } = req.params;
   if (!isSafeSlug(slug)) {
     res.status(404).send('Not found');
     return;
   }
+
+  const mirrorFormat = mirrorFormatFromRequest(req, 'html');
+  if (mirrorFormat === 'md' || mirrorFormat === 'json') {
+    await sendPostMirror(req, res, slug, mirrorFormat);
+    return;
+  }
+
   await sendGeneratedHtml(res, path.join(ROOT_DIR, 'posts', slug, 'index.html'));
 });
 

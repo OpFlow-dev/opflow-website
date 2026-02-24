@@ -141,6 +141,17 @@ Admin API/UI behavior:
 
 Read operations are public, write operations require token.
 
+### Post Raw Mirrors (for machine fetch/citation)
+
+For each published post page URL (`/posts/<slug>/`), machine-readable mirrors are available:
+
+- Query mirror on same URL:
+  - `/posts/<slug>/?format=raw` → markdown source
+  - `/posts/<slug>/?format=json` → JSON payload
+- Extension mirrors:
+  - `/posts/<slug>.md` → markdown source
+  - `/posts/<slug>.json` → JSON payload
+
 - Read endpoints:
   - `GET /api/v1/health`
   - `GET /api/v1/posts?status=published|draft|all&includeContent=1&q=keyword`
