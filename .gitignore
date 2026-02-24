@@ -3,6 +3,7 @@
 .server.pid
 .admin.log
 .admin.pid
+/content/api-tokens.json
 
 # Python
 .venv/

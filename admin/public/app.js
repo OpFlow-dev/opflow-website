@@ -19,6 +19,7 @@ const EMPTY_FORM = {
 const state = {
   posts: [],
   categories: [],
+  agentTokens: [],
   filtered: [],
   selectedSlug: null,
   selectedSlugs: new Set(),
@@ -65,6 +66,12 @@ const elements = {
   categoryCreateBtn: document.getElementById('category-create-btn'),
   categoryDeleteSelect: document.getElementById('category-delete-select'),
   categoryDeleteBtn: document.getElementById('category-delete-btn'),
+  tokenNameInput: document.getElementById('token-name-input'),
+  tokenCreateBtn: document.getElementById('token-create-btn'),
+  tokenList: document.getElementById('token-list'),
+  tokenCreatedPanel: document.getElementById('token-created-panel'),
+  tokenPlainOutput: document.getElementById('token-plain-output'),
+  tokenCopyBtn: document.getElementById('token-copy-btn'),
   rebuildBtn: document.getElementById('rebuild-btn'),
   newBtn: document.getElementById('new-btn'),
   logoutBtn: document.getElementById('logout-btn'),
@@ -158,6 +165,100 @@ function renderCategoryControls() {
     elements.categoryDeleteSelect.value = deleteOptions[1].value;
   }
   elements.categoryDeleteBtn.disabled = deletable.length === 0;
+}
+
+function formatDateTime(value) {
+  if (!value) return '未使用';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString('zh-CN', { hour12: false });
+}
+
+function hideTokenPreview() {
+  elements.tokenCreatedPanel.classList.add('hidden');
+  elements.tokenPlainOutput.value = '';
+}
+
+function renderTokenList() {
+  const rows = state.agentTokens || [];
+  if (!rows.length) {
+    elements.tokenList.innerHTML = '<li class="token-empty">暂无 API Token</li>';
+    return;
+  }
+
+  elements.tokenList.innerHTML = rows
+    .map((token) => {
+      const revoked = Boolean(token.revokedAt);
+      return `
+        <li class="token-row" data-token-id="${escapeHtml(token.id)}">
+          <div class="token-main">
+            <span class="token-name">${escapeHtml(token.name)}${revoked ? '（已停用）' : ''}</span>
+            <span class="token-meta">${escapeHtml(token.prefix)}••• · 创建 ${escapeHtml(formatDateTime(token.createdAt))} · 最近使用 ${escapeHtml(formatDateTime(token.lastUsedAt))}</span>
+          </div>
+          <button type="button" class="btn ${revoked ? 'btn-ghost' : 'btn-danger'}" data-action="revoke-token" data-token-id="${escapeHtml(token.id)}" ${revoked ? 'disabled' : ''}>${revoked ? '已停用' : '停用'}</button>
+        </li>
+      `;
+    })
+    .join('');
+}
+
+async function loadAgentTokens() {
+  const payload = await api('/agent-tokens');
+  state.agentTokens = (payload.tokens || []).sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  renderTokenList();
+}
+
+async function createAgentToken() {
+  const name = elements.tokenNameInput.value.trim();
+  if (!name) {
+    setStatus('请输入 Token 名称', true);
+    return;
+  }
+
+  const payload = await api('/agent-tokens', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+
+  elements.tokenNameInput.value = '';
+  elements.tokenCreatedPanel.classList.remove('hidden');
+  elements.tokenPlainOutput.value = payload.plainToken || '';
+  await loadAgentTokens();
+  setStatus(`Token 已创建：${payload.token?.name || name}`);
+}
+
+async function revokeAgentToken(id) {
+  if (!id) {
+    setStatus('缺少 token id', true);
+    return;
+  }
+
+  if (!window.confirm('确认停用该 Token 吗？停用后无法恢复。')) {
+    return;
+  }
+
+  await api(`/agent-tokens/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    body: JSON.stringify({}),
+  });
+
+  await loadAgentTokens();
+  setStatus('Token 已停用');
+}
+
+async function copyTokenToClipboard() {
+  const token = elements.tokenPlainOutput.value.trim();
+  if (!token) {
+    setStatus('没有可复制的 Token', true);
+    return;
+  }
+
+  if (!navigator.clipboard?.writeText) {
+    throw new Error('当前浏览器不支持剪贴板 API，请手动复制');
+  }
+
+  await navigator.clipboard.writeText(token);
+  setStatus('Token 已复制到剪贴板');
 }
 
 async function api(path, options = {}) {
@@ -356,7 +457,7 @@ async function loadPosts(selectSlug = null) {
 }
 
 async function refreshData(selectSlug = null) {
-  await loadCategories();
+  await Promise.all([loadCategories(), loadAgentTokens()]);
   await loadPosts(selectSlug);
 }
 
@@ -381,6 +482,9 @@ async function checkSession() {
   } else {
     elements.loginPanel.classList.remove('hidden');
     elements.workspace.classList.add('hidden');
+    state.agentTokens = [];
+    renderTokenList();
+    hideTokenPreview();
     writeForm(null);
   }
 }
@@ -763,6 +867,27 @@ elements.categoryDeleteBtn.addEventListener('click', () => {
   deleteCategory().catch((error) => setStatus(error.message, true));
 });
 
+elements.tokenCreateBtn.addEventListener('click', () => {
+  createAgentToken().catch((error) => setStatus(error.message, true));
+});
+
+elements.tokenNameInput.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  createAgentToken().catch((error) => setStatus(error.message, true));
+});
+
+elements.tokenList.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-action="revoke-token"]');
+  if (!button) return;
+  const tokenId = button.dataset.tokenId;
+  revokeAgentToken(tokenId).catch((error) => setStatus(error.message, true));
+});
+
+elements.tokenCopyBtn.addEventListener('click', () => {
+  copyTokenToClipboard().catch((error) => setStatus(error.message, true));
+});
+
 elements.fields.content.addEventListener('input', updatePreview);
 
 elements.toolbar.addEventListener('click', (event) => {
@@ -783,4 +908,6 @@ elements.imageUploadInput.addEventListener('change', async () => {
   }
 });
 
+renderTokenList();
+hideTokenPreview();
 checkSession().catch((error) => setStatus(error.message, true));

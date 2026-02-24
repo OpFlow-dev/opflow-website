@@ -71,6 +71,21 @@
           </div>
         </div>
 
+        <div class="token-manager">
+          <h3>API Token 管理</h3>
+          <div class="batch-row">
+            <input id="token-name-input" type="text" placeholder="例如：Agent Runner">
+            <button id="token-create-btn" type="button" class="btn btn-light">创建 Token</button>
+          </div>
+          <p class="token-tip">写入类 API 必须携带 Bearer Token。新建后仅显示一次，请立即保存。</p>
+          <div id="token-created-panel" class="token-created hidden">
+            <p class="token-created-title">新 Token（仅显示一次）</p>
+            <textarea id="token-plain-output" rows="3" readonly></textarea>
+            <button id="token-copy-btn" type="button" class="btn btn-primary btn-block">复制 Token</button>
+          </div>
+          <ul id="token-list" class="token-list"></ul>
+        </div>
+
         <ul id="post-tree" class="post-tree"></ul>
       </aside>
 

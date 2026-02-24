@@ -138,6 +138,95 @@ h2 {
   font-size: 14px;
 }
 
+.token-manager {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--panel-soft);
+  display: grid;
+  gap: 8px;
+}
+
+.token-manager h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.token-tip {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.token-created {
+  display: grid;
+  gap: 6px;
+  border: 1px dashed #9fb0c7;
+  border-radius: 8px;
+  padding: 8px;
+  background: #f7faff;
+}
+
+.token-created-title {
+  margin: 0;
+  font-size: 12px;
+  color: #334155;
+  font-weight: 600;
+}
+
+#token-plain-output {
+  font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  background: #f8fafc;
+}
+
+.token-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  max-height: 210px;
+  overflow: auto;
+}
+
+.token-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border-bottom: 1px solid #eef1f4;
+}
+
+.token-row:last-child {
+  border-bottom: 0;
+}
+
+.token-main {
+  display: grid;
+  gap: 2px;
+}
+
+.token-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.token-meta {
+  font-size: 12px;
+  color: #667085;
+}
+
+.token-empty {
+  margin: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .post-tree {
   margin: 0;
   padding: 0;

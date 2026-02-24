@@ -130,11 +130,45 @@ Admin API/UI behavior:
   - `GET /admin/api/categories` returns `{ categories: [{ name, count }] }`
   - `POST /admin/api/categories` with body `{ name }` creates a category
   - `DELETE /admin/api/categories/:name` with optional body `{ reassignTo }` migrates posts (default `未分类`) then deletes the category
-- Admin UI supports creating/deleting categories and uses dropdown-only category selection in editor/bulk operations.
+- Admin supports API Token management (`/admin/api/agent-tokens`) for external agent write access:
+  - `GET /admin/api/agent-tokens` list token metadata
+  - `POST /admin/api/agent-tokens` with `{ name }` create token (plaintext shown once)
+  - `DELETE /admin/api/agent-tokens/:id` revoke token
+
+### External Agent API (`/api/v1`)
+
+Read operations are public, write operations require token.
+
+- Read endpoints:
+  - `GET /api/v1/health`
+  - `GET /api/v1/posts?status=published|draft|all&includeContent=1&q=keyword`
+  - `GET /api/v1/posts/:slug`
+  - `GET /api/v1/categories?status=published|draft|all`
+  - `GET /api/v1/tags?status=published|draft|all`
+  - `GET /api/v1/taxonomy?status=published|draft|all`
+- Write endpoints (Bearer token required):
+  - `POST /api/v1/posts`
+  - `PUT /api/v1/posts/:slug`
+  - `DELETE /api/v1/posts/:slug`
+  - `POST /api/v1/categories`
+  - `DELETE /api/v1/categories/:name`
+  - `POST /api/v1/tags/rename`
+  - `DELETE /api/v1/tags/:name`
+  - `POST /api/v1/rebuild`
+
+Token usage:
+
+```bash
+curl -X POST http://127.0.0.1:59051/api/v1/posts \
+  -H "Authorization: Bearer <YOUR_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"slug":"demo-post","title":"Demo","date":"2026-02-24","status":"published","category":"github trend","tags":["demo"],"summary":"summary","content":"# hello"}'
+```
 
 Security note:
 
 - Change `ADMIN_PASSWORD` before exposing the service anywhere.
+- Never commit or share plaintext API tokens.
 
 ## CI
 
