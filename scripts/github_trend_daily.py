@@ -43,10 +43,32 @@ def parse_top10(html: str):
         desc = clean(row.select_one('p').get_text(' ', strip=True)) if row.select_one('p') else ''
         lang = clean(row.select_one('[itemprop="programmingLanguage"]').get_text()) if row.select_one('[itemprop="programmingLanguage"]') else '未知'
 
-        links = row.select('a.Link.Link--muted.d-inline-block.mr-3')
-        stars = clean(links[0].get_text(' ', strip=True)) if len(links) > 0 else '未知'
-        forks = clean(links[1].get_text(' ', strip=True)) if len(links) > 1 else '未知'
-        today = clean(row.select_one('span.d-inline-block.float-sm-right').get_text(' ', strip=True)) if row.select_one('span.d-inline-block.float-sm-right') else '未知'
+        star_link = row.select_one('a[href$="/stargazers"]')
+        fork_link = row.select_one('a[href$="/forks"]')
+
+        # Fallback for markup/class changes on GitHub Trending.
+        if not star_link or not fork_link:
+            stat_links = [
+                node for node in row.select('a.Link--muted')
+                if (node.get('href') or '').endswith('/stargazers')
+                or (node.get('href') or '').endswith('/forks')
+            ]
+            for node in stat_links:
+                href_lower = (node.get('href') or '').lower()
+                if href_lower.endswith('/stargazers') and not star_link:
+                    star_link = node
+                elif href_lower.endswith('/forks') and not fork_link:
+                    fork_link = node
+
+        stars = clean(star_link.get_text(' ', strip=True)) if star_link else '未知'
+        forks = clean(fork_link.get_text(' ', strip=True)) if fork_link else '未知'
+
+        today_node = row.select_one('span.d-inline-block.float-sm-right')
+        today = clean(today_node.get_text(' ', strip=True)) if today_node else '未知'
+        if today == '未知':
+            m = re.search(r'([\d,]+\s+stars?\s+today)', row.get_text(' ', strip=True), re.IGNORECASE)
+            if m:
+                today = clean(m.group(1))
 
         items.append({
             'repo': repo,
