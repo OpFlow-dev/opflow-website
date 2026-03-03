@@ -421,6 +421,38 @@ def clone_and_analyze(items):
     return analyzed
 
 
+def mermaid_label(text: str, max_len: int = 28):
+    value = clean(text)
+    value = value.replace('"', "'").replace('`', '')
+    value = value.replace('[', '(').replace(']', ')').replace('{', '(').replace('}', ')')
+    value = value.replace('|', '/').replace('<', '＜').replace('>', '＞')
+    if len(value) > max_len:
+        value = value[: max_len - 1] + '…'
+    return value or '模块'
+
+
+def build_architecture_mermaid(repo: str, core_items):
+    core = [mermaid_label(item, max_len=30) for item in (core_items or []) if clean(item)]
+    if not core:
+        core = ['关键能力']
+    core = core[:4]
+
+    root = mermaid_label(repo, max_len=40)
+    lines = [
+        '```mermaid',
+        'flowchart LR',
+        f'    CORE["{root}"]',
+    ]
+
+    for i, item in enumerate(core, 1):
+        node = f'N{i}'
+        lines.append(f'    {node}["{item}"]')
+        lines.append(f'    CORE --> {node}')
+
+    lines.append('```')
+    return '\n'.join(lines)
+
+
 def render_markdown(date_str: str, items):
     slug = f'github-trend-{date_str}'
     top_n = len(items)
@@ -457,6 +489,8 @@ summary: {summary}
         stack = a.get('stack') or [it.get('lang') or '未知']
         core = a.get('core') or ['详见仓库文档。']
 
+        diagram = build_architecture_mermaid(it['repo'], core)
+
         lines.extend([
             f'### {i}. [{it["repo"]}]({it["url"]})',
             '',
@@ -478,7 +512,13 @@ summary: {summary}
         ])
         for c in core:
             lines.append(f'- {c}')
-        lines.append('')
+        lines.extend([
+            '',
+            '#### 架构图',
+            '',
+            diagram,
+            '',
+        ])
 
     lines.extend([
         '## 观察',

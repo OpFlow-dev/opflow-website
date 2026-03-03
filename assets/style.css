@@ -520,6 +520,22 @@ mark {
   border: 1px solid #d0d7de;
 }
 
+.typo .mermaid {
+  margin: 1.2em 0;
+  padding: 12px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #fff;
+  overflow-x: auto;
+}
+
+.typo .mermaid svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
 .typo .tip {
   border: 1px solid #aaa;
   border-left: 2px solid #aaa;

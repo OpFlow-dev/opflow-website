@@ -361,7 +361,7 @@ export async function buildSite() {
       active: null,
       contentHtml,
       extraHead: '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/styles/github.min.css"><style>.typo pre code.hljs{background:transparent!important;padding:0!important}.typo pre .hljs{background:transparent!important}</style>',
-      extraScripts: `<script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js"></script>\n  <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/dist/markdown-it.min.js"></script>\n  <script src="../../assets/post-renderer.js?v=${postClientVersion}"></script>`,
+      extraScripts: `<script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js"></script>\n  <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/dist/markdown-it.min.js"></script>\n  <script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>\n  <script src="../../assets/post-renderer.js?v=${postClientVersion}"></script>`,
     });
 
     await writePage(path.join(PUBLIC_POSTS_DIR, post.slug, 'index.html'), postHtml);

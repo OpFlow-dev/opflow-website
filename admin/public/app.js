@@ -28,16 +28,23 @@ const state = {
   activeTab: 'posts',
 };
 
+let mermaidInitialized = false;
+
 const md = window.markdownit({
   html: false,
   linkify: true,
   breaks: true,
   highlight(code, lang) {
+    const normalizedLang = String(lang || '').trim().toLowerCase();
+    if (normalizedLang === 'mermaid') {
+      return `<pre><code class="language-mermaid">${escapeHtml(code)}</code></pre>`;
+    }
+
     if (typeof window.hljs !== 'object') {
       return `<pre><code>${escapeHtml(code)}</code></pre>`;
     }
 
-    const language = lang && window.hljs.getLanguage(lang) ? lang : null;
+    const language = normalizedLang && window.hljs.getLanguage(normalizedLang) ? normalizedLang : null;
 
     if (language) {
       const highlighted = window.hljs.highlight(code, { language, ignoreIllegals: true }).value;
@@ -394,16 +401,55 @@ function writeForm(post) {
   updatePreview();
 }
 
-function updatePreview() {
+async function renderPreviewMermaid() {
+  if (!window.mermaid || typeof window.mermaid.initialize !== 'function') return;
+
+  const blocks = elements.preview.querySelectorAll('pre code.language-mermaid, pre code.lang-mermaid');
+  if (!blocks.length) return;
+
+  if (!mermaidInitialized) {
+    window.mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: 'strict',
+      theme: 'default',
+    });
+    mermaidInitialized = true;
+  }
+
+  const nodes = [];
+  blocks.forEach((block) => {
+    const pre = block.closest('pre');
+    if (!pre) return;
+
+    const host = document.createElement('div');
+    host.className = 'mermaid';
+    host.textContent = block.textContent || '';
+
+    pre.replaceWith(host);
+    nodes.push(host);
+  });
+
+  if (!nodes.length) return;
+
+  try {
+    await window.mermaid.run({ nodes });
+  } catch (error) {
+    console.error('[admin preview mermaid] render failed', error);
+  }
+}
+
+async function updatePreview() {
   elements.preview.innerHTML = md.render(elements.fields.content.value || '');
 
   if (typeof window.hljs === 'object') {
-    elements.preview.querySelectorAll('pre code').forEach((block) => {
+    elements.preview.querySelectorAll('pre code:not(.language-mermaid):not(.lang-mermaid)').forEach((block) => {
       if (!block.classList.contains('hljs')) {
         window.hljs.highlightElement(block);
       }
     });
   }
+
+  await renderPreviewMermaid();
 }
 
 function getFilteredPosts() {

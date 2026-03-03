@@ -4,6 +4,8 @@
   const container = document.querySelector('#post-content[data-markdown-src]');
   if (!container) return;
 
+  let mermaidInitialized = false;
+
   function stripFrontmatter(markdown) {
     return markdown.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '');
   }
@@ -15,8 +17,45 @@
   function highlightCodeBlocks() {
     if (!window.hljs || typeof window.hljs.highlightElement !== 'function') return;
 
-    const blocks = container.querySelectorAll('pre code');
+    const blocks = container.querySelectorAll('pre code:not(.language-mermaid):not(.lang-mermaid)');
     blocks.forEach((block) => window.hljs.highlightElement(block));
+  }
+
+  async function renderMermaidBlocks() {
+    if (!window.mermaid || typeof window.mermaid.initialize !== 'function') return;
+
+    const blocks = container.querySelectorAll('pre code.language-mermaid, pre code.lang-mermaid');
+    if (!blocks.length) return;
+
+    if (!mermaidInitialized) {
+      window.mermaid.initialize({
+        startOnLoad: false,
+        securityLevel: 'strict',
+        theme: 'default',
+      });
+      mermaidInitialized = true;
+    }
+
+    const nodes = [];
+    blocks.forEach((block) => {
+      const pre = block.closest('pre');
+      if (!pre) return;
+
+      const host = document.createElement('div');
+      host.className = 'mermaid';
+      host.textContent = block.textContent || '';
+
+      pre.replaceWith(host);
+      nodes.push(host);
+    });
+
+    if (!nodes.length) return;
+
+    try {
+      await window.mermaid.run({ nodes });
+    } catch (error) {
+      console.error('[mermaid] render failed', error);
+    }
   }
 
   async function renderPostMarkdown() {
@@ -44,6 +83,7 @@
       });
 
       container.innerHTML = md.render(body);
+      await renderMermaidBlocks();
       highlightCodeBlocks();
     } catch (error) {
       renderError('正文加载失败，请稍后重试。');
