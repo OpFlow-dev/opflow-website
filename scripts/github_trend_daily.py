@@ -431,6 +431,54 @@ def mermaid_label(text: str, max_len: int = 28):
     return value or '模块'
 
 
+NON_CODE_REPO_KEYWORDS = [
+    'tutorial',
+    'tutorials',
+    'skills',
+    'skill',
+    'docs',
+    'documentation',
+    'prompt',
+    'prompts',
+    'guide',
+    'guides',
+    'awesome',
+    'course',
+    'courses',
+    'cookbook',
+    'playbook',
+]
+
+NON_CODE_TEXT_KEYWORDS = [
+    'tutorial',
+    'guide',
+    'documentation',
+    'docs',
+    'prompt',
+    'prompts',
+    'skills',
+    'course',
+    '教程',
+    '文档',
+    '提示词',
+    '课程',
+]
+
+
+def should_include_architecture(repo: str, lang: str, desc: str, feature: str):
+    repo_lower = (repo or '').lower()
+    if any(keyword in repo_lower for keyword in NON_CODE_REPO_KEYWORDS):
+        return False
+
+    lang_lower = (lang or '').strip().lower()
+    text = f'{desc} {feature}'.lower()
+
+    if lang_lower in {'未知', 'unknown', 'markdown', 'text'} and any(keyword in text for keyword in NON_CODE_TEXT_KEYWORDS):
+        return False
+
+    return True
+
+
 def build_architecture_mermaid(repo: str, core_items):
     core = [mermaid_label(item, max_len=30) for item in (core_items or []) if clean(item)]
     if not core:
@@ -489,8 +537,6 @@ summary: {summary}
         stack = a.get('stack') or [it.get('lang') or '未知']
         core = a.get('core') or ['详见仓库文档。']
 
-        diagram = build_architecture_mermaid(it['repo'], core)
-
         lines.extend([
             f'### {i}. [{it["repo"]}]({it["url"]})',
             '',
@@ -512,13 +558,25 @@ summary: {summary}
         ])
         for c in core:
             lines.append(f'- {c}')
-        lines.extend([
-            '',
-            '#### 架构图',
-            '',
-            diagram,
-            '',
-        ])
+
+        include_arch = should_include_architecture(
+            it.get('repo', ''),
+            it.get('lang', ''),
+            it.get('desc', ''),
+            feature,
+        )
+
+        if include_arch:
+            diagram = build_architecture_mermaid(it['repo'], core)
+            lines.extend([
+                '',
+                '#### 架构图',
+                '',
+                diagram,
+                '',
+            ])
+        else:
+            lines.append('')
 
     lines.extend([
         '## 观察',
