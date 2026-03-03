@@ -425,7 +425,7 @@ def render_markdown(date_str: str, items):
     slug = f'github-trend-{date_str}'
     top_n = len(items)
     title = f'GitHub Trend 每日 Top {top_n}｜{date_str}'
-    summary = f'整理 {date_str} GitHub Trending 日榜（最多 10 项目，实际 {top_n} 项），并基于源码生成功能描述与技术栈报告。'
+    summary = f'整理 {date_str} GitHub Trending 日榜（最多 10 项目，实际 {top_n} 项）。'
 
     header = f'''---
 slug: {slug}
@@ -442,7 +442,7 @@ summary: {summary}
 '''
 
     lines = [
-        f'今天整理了 GitHub Trending（日榜）前 {top_n} 项目（最多 10 项）。每个项目均执行了：**临时目录浅克隆源码 + Codex 技术解读**，并输出功能与技术栈报告。',
+        f'今天整理了 GitHub Trending（日榜）前 {top_n} 项目（最多 10 项）。',
         '',
         f'- 榜单来源：[{TRENDING_URL}]({TRENDING_URL})',
         f'- 统计时间（Asia/Shanghai）：{date_str} 08:00',
@@ -465,7 +465,7 @@ summary: {summary}
             f'- Fork：{it["forks"]}',
             f'- 今日新增：{it["today"]}',
             '',
-            '#### 功能描述（基于源码）',
+            '#### 功能描述',
             '',
             feature,
             '',
@@ -489,7 +489,7 @@ summary: {summary}
         '',
         '---',
         '',
-        '以上内容为自动化生成，后续会每天 8:00 更新。',
+        '以上为当日趋势简报。',
         '',
     ])
 
