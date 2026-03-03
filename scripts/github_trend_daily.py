@@ -136,8 +136,41 @@ ANALYSIS_JSON_SCHEMA = {
                 "pattern": "^(?!功能点[0-9]).+",
             },
         },
+        "架构组件": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 10,
+            "items": {
+                "type": "string",
+                "minLength": 2,
+            },
+        },
+        "组件协作": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 20,
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "from": {
+                        "type": "string",
+                        "minLength": 2,
+                    },
+                    "to": {
+                        "type": "string",
+                        "minLength": 2,
+                    },
+                    "relation": {
+                        "type": "string",
+                        "minLength": 2,
+                    },
+                },
+                "required": ["from", "to", "relation"],
+            },
+        },
     },
-    "required": ["功能描述", "技术栈", "核心功能"],
+    "required": ["功能描述", "技术栈", "核心功能", "架构组件", "组件协作"],
 }
 
 
@@ -259,6 +292,9 @@ PLACEHOLDER_PATTERNS = [
     r'功能点2',
     r'功能点3',
     r'功能点4',
+    r'组件1',
+    r'组件2',
+    r'组件3',
     r'该项目聚焦于提升开发者效率',
     r'详见仓库 README',
 ]
@@ -273,6 +309,8 @@ def normalize_analysis(obj: dict, fallback_desc: str, fallback_lang: str):
     feature = obj.get('功能描述') or obj.get('overview') or fallback_desc or '该项目位列今日 Trending，建议重点关注其核心场景与更新节奏。'
     stack = obj.get('技术栈') or obj.get('tech_stack') or [fallback_lang]
     core = obj.get('核心功能') or obj.get('core_features') or []
+    arch_components = obj.get('架构组件') or obj.get('architecture_components') or []
+    collaborations = obj.get('组件协作') or obj.get('component_collaboration') or obj.get('component_relations') or []
 
     if isinstance(stack, str):
         stack = [s.strip() for s in re.split(r'[,，/、]', stack) if s.strip()]
@@ -284,9 +322,37 @@ def normalize_analysis(obj: dict, fallback_desc: str, fallback_lang: str):
     if not isinstance(core, list):
         core = []
 
+    if isinstance(arch_components, str):
+        arch_components = [s.strip() for s in re.split(r'[,，/、\n]+', arch_components) if s.strip()]
+    if not isinstance(arch_components, list):
+        arch_components = []
+
+    if isinstance(collaborations, dict):
+        collaborations = [collaborations]
+    if not isinstance(collaborations, list):
+        collaborations = []
+
     feature = clean(str(feature))
     stack = [clean(str(x)) for x in stack if clean(str(x))]
     core = [clean(str(x)) for x in core if clean(str(x))]
+    arch_components = [clean(str(x)) for x in arch_components if clean(str(x))]
+
+    normalized_collaborations = []
+    for item in collaborations:
+        if not isinstance(item, dict):
+            continue
+        from_part = clean(str(item.get('from') or item.get('source') or ''))
+        to_part = clean(str(item.get('to') or item.get('target') or ''))
+        relation = clean(str(item.get('relation') or item.get('label') or item.get('action') or ''))
+        if not from_part or not to_part:
+            continue
+        if not relation:
+            relation = '协作'
+        normalized_collaborations.append({
+            'from': from_part,
+            'to': to_part,
+            'relation': relation,
+        })
 
     if not stack:
         stack = [fallback_lang or '未知']
@@ -297,6 +363,8 @@ def normalize_analysis(obj: dict, fallback_desc: str, fallback_lang: str):
         'feature': feature,
         'stack': stack[:8],
         'core': core[:6],
+        'arch_components': arch_components[:10],
+        'collaborations': normalized_collaborations[:20],
     }
 
 
@@ -304,6 +372,8 @@ def is_weak_analysis(analysis: dict) -> bool:
     feature = analysis.get('feature', '')
     stack = analysis.get('stack', [])
     core = analysis.get('core', [])
+    arch_components = analysis.get('arch_components', [])
+    collaborations = analysis.get('collaborations', [])
 
     if not feature or len(feature) < 40:
         return True
@@ -313,21 +383,29 @@ def is_weak_analysis(analysis: dict) -> bool:
         return True
     if any(has_placeholder(x) for x in core):
         return True
+    if any(has_placeholder(x) for x in arch_components):
+        return True
     if len(core) < 3:
+        return True
+    if len(arch_components) < 2:
+        return True
+    if len(collaborations) < 1:
         return True
     return False
 
 
 def analyze_repo_with_codex(repo_dir: Path, repo_name: str, fallback_desc: str, fallback_lang: str):
-    base_prompt = f'''你是资深技术分析师。请快速阅读仓库（优先 README、docs、根目录配置文件与主要源码目录），输出“功能描述 + 技术栈 + 核心功能”。
+    base_prompt = f'''你是资深技术分析师。请快速阅读仓库（优先 README、docs、根目录配置文件与主要源码目录），输出“功能描述 + 技术栈 + 核心功能 + 架构组件协作”。
 
 仓库：{repo_name}
 要求：
 1) 不要执行重型构建/测试，仅基于文件结构与文档判断。
 2) 输出必须是严格 JSON（不要 Markdown，不要解释，不要代码块）。
-3) 禁止输出占位词：例如“120-220字中文”“功能点1”“语言/框架/关键基础设施”。
+3) 禁止输出占位词：例如“120-220字中文”“功能点1”“语言/框架/关键基础设施”“组件1”。
 4) 功能描述至少 80 字，必须包含项目要解决的问题、目标用户和典型场景。
 5) 核心功能至少 4 条，且要具体。
+6) 必须给出“架构组件”（2-8 个）和“组件协作”（至少 1 条），用于绘制 Mermaid 组件协作图。
+7) 组件协作格式：{{"from":"组件A","to":"组件B","relation":"调用/读写/同步/通知..."}}。
 '''
 
     rc, parsed, raw = run_codex_schema(repo_dir, base_prompt, MAX_CODEX_SECONDS)
@@ -344,10 +422,11 @@ def analyze_repo_with_codex(repo_dir: Path, repo_name: str, fallback_desc: str, 
 
 仓库：{repo_name}
 强约束：
-- 严禁出现“功能点1/2/3/4”“120-220字中文”“语言/框架/关键基础设施”等模板文本。
+- 严禁出现“功能点1/2/3/4”“120-220字中文”“语言/框架/关键基础设施”“组件1/组件2”等模板文本。
 - 功能描述必须具体，至少 80 字。
 - 核心功能至少 4 条，且每条都要包含具体动作或能力。
 - 技术栈至少 3 项（若仓库规模较小可写 2 项）。
+- 架构组件至少 2 项，并补充组件协作关系（至少 1 条，含 from/to/relation）。
 '''
 
     rc2, retry_parsed, retry_raw = run_codex_schema(repo_dir, retry_prompt, MAX_CODEX_SECONDS)
@@ -367,6 +446,8 @@ def analyze_repo_with_codex(repo_dir: Path, repo_name: str, fallback_desc: str, 
 - 功能描述：100-220字中文，必须具体。
 - 技术栈：3-8项，写出语言、框架、关键依赖或基础设施。
 - 核心功能：4-6项，每条必须可执行、可验证，不得写模板词。
+- 架构组件：2-8项，使用组件名称（如 API 网关、任务队列、数据库、前端应用等）。
+- 组件协作：至少 1 条，结构为 from/to/relation，用于体现组件协作关系。
 '''
 
     rc3, third_parsed, third_raw = run_codex_schema(repo_dir, third_prompt, MAX_CODEX_SECONDS)
@@ -383,6 +464,8 @@ def analyze_repo_with_codex(repo_dir: Path, repo_name: str, fallback_desc: str, 
         'feature': fallback_desc or '该项目位列今日 Trending，建议重点关注其 README 与近期提交。',
         'stack': [fallback_lang or '未知'],
         'core': ['自动分析结果不足，建议人工复核仓库文档与目录结构。'],
+        'arch_components': [],
+        'collaborations': [],
         'note': f'codex分析质量不足，已降级（rc={rc}/{rc2}/{rc3}）',
     }
 
@@ -406,6 +489,8 @@ def clone_and_analyze(items):
                     'feature': item['desc'] or '该项目位列今日 Trending，建议关注其 README 与示例。',
                     'stack': [item['lang'] or '未知'],
                     'core': ['仓库克隆失败，暂以 Trending 信息补充。'],
+                    'arch_components': [],
+                    'collaborations': [],
                     'note': 'clone失败，已降级',
                 }
                 analyzed.append(item)
@@ -479,23 +564,71 @@ def should_include_architecture(repo: str, lang: str, desc: str, feature: str):
     return True
 
 
-def build_architecture_mermaid(repo: str, core_items):
-    core = [mermaid_label(item, max_len=30) for item in (core_items or []) if clean(item)]
-    if not core:
-        core = ['关键能力']
-    core = core[:4]
+def build_architecture_mermaid(repo: str, components, collaborations):
+    normalized_components = [mermaid_label(item, max_len=36) for item in (components or []) if clean(item)]
 
-    root = mermaid_label(repo, max_len=40)
+    # keep order while de-duplicating
+    seen = set()
+    dedup_components = []
+    for comp in normalized_components:
+        key = comp.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        dedup_components.append(comp)
+
+    # absorb endpoints from collaborations to avoid missing nodes
+    normalized_collaborations = []
+    for rel in collaborations or []:
+        if not isinstance(rel, dict):
+            continue
+        from_part = mermaid_label(rel.get('from', ''), max_len=36)
+        to_part = mermaid_label(rel.get('to', ''), max_len=36)
+        relation = mermaid_label(rel.get('relation', '协作'), max_len=24)
+        if not from_part or not to_part:
+            continue
+        normalized_collaborations.append({
+            'from': from_part,
+            'to': to_part,
+            'relation': relation,
+        })
+        for endpoint in (from_part, to_part):
+            key = endpoint.lower()
+            if key not in seen:
+                seen.add(key)
+                dedup_components.append(endpoint)
+
+    if len(dedup_components) < 2 or not normalized_collaborations:
+        return None
+
+    dedup_components = dedup_components[:10]
+
+    node_map = {name.lower(): f'C{i + 1}' for i, name in enumerate(dedup_components)}
+
     lines = [
         '```mermaid',
         'flowchart LR',
-        f'    CORE["{root}"]',
+        f'    %% {mermaid_label(repo, max_len=40)}',
     ]
 
-    for i, item in enumerate(core, 1):
-        node = f'N{i}'
-        lines.append(f'    {node}["{item}"]')
-        lines.append(f'    CORE --> {node}')
+    for name in dedup_components:
+        node = node_map[name.lower()]
+        lines.append(f'    {node}["{name}"]')
+
+    edge_seen = set()
+    for rel in normalized_collaborations:
+        src = node_map.get(rel['from'].lower())
+        dst = node_map.get(rel['to'].lower())
+        if not src or not dst:
+            continue
+        edge_key = f"{src}|{dst}|{rel['relation']}"
+        if edge_key in edge_seen:
+            continue
+        edge_seen.add(edge_key)
+        lines.append(f'    {src} -->|{rel["relation"]}| {dst}')
+
+    if not edge_seen:
+        return None
 
     lines.append('```')
     return '\n'.join(lines)
@@ -559,6 +692,9 @@ summary: {summary}
         for c in core:
             lines.append(f'- {c}')
 
+        arch_components = a.get('arch_components') or []
+        collaborations = a.get('collaborations') or []
+
         include_arch = should_include_architecture(
             it.get('repo', ''),
             it.get('lang', ''),
@@ -567,14 +703,17 @@ summary: {summary}
         )
 
         if include_arch:
-            diagram = build_architecture_mermaid(it['repo'], core)
-            lines.extend([
-                '',
-                '#### 架构图',
-                '',
-                diagram,
-                '',
-            ])
+            diagram = build_architecture_mermaid(it['repo'], arch_components, collaborations)
+            if diagram:
+                lines.extend([
+                    '',
+                    '#### 架构图',
+                    '',
+                    diagram,
+                    '',
+                ])
+            else:
+                lines.append('')
         else:
             lines.append('')
 
