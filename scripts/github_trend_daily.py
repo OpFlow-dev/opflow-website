@@ -442,8 +442,6 @@ summary: {summary}
 '''
 
     lines = [
-        f'# {title}',
-        '',
         f'今天整理了 GitHub Trending（日榜）前 {top_n} 项目（最多 10 项）。每个项目均执行了：**临时目录浅克隆源码 + Codex 技术解读**，并输出功能与技术栈报告。',
         '',
         f'- 榜单来源：[{TRENDING_URL}]({TRENDING_URL})',
